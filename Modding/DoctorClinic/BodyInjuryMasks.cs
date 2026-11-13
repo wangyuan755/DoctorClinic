@@ -69,6 +69,8 @@ namespace DoctorClinic
             return region < 0 ? pixelRegion != 0 : pixelRegion == region + 1;
         }
 
+        public Sprite GetOverlay(int region) => overlays[region];
+
         public void AddTarget(RectTransform chart, int region, Action click, Action<GameItem> drop, Action inspectBlood)
         {
             var node = new GameObject("Wound region " + region, typeof(RectTransform), typeof(Image),

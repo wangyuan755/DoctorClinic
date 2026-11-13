@@ -1,3 +1,4 @@
+using static DoctorClinic.ClinicText;
 using System;
 using System.Linq;
 using Newtonsoft.Json;
@@ -36,8 +37,8 @@ namespace DoctorClinic
         {
             log = new ModLog(manifest);
             setting = ModHelper.GetConfig(ModId).DefineEnum(
-                "difficulty", Difficulty.简单, "诊所", () => "难度",
-                () => "在主菜单配置，读取存档时生效。", requiresRestart: true);
+                "difficulty", Difficulty.简单, "DoctorClinic", () => T("clinic_difficulty"),
+                () => T("clinic_configure_from_the_main_menu_takes_effect"), requiresRestart: true);
         }
 
         public void OnEnable()
@@ -52,19 +53,25 @@ namespace DoctorClinic
             ModHook.OnWakingUpLate += QueueTribunalIfNeeded;
             ModHook.OnShutterOpenedLate += DeliverCommissions;
             ModHook.OnShutterClosedLate += StopCommissionDelivery;
-            ModHelper.AddEnding(ModId, TribunalEnding, () => "公民审判",
-                () => "愤怒的居民涌到柜台，砸碎诊所的招牌。街区已经不再相信你能照顾他们。");
-            ModHelper.AddDebugPanel(ModId, "clinic", "医生诊所原型", ClinicDebugTabs, false);
+            ModHelper.AddEnding(ModId, TribunalEnding, () => T("clinic_citizen_s_tribunal"),
+                () => T("clinic_angry_residents_storm_the_counter_and_smash"));
+        }
+
+        internal bool IsClinicDifficultySetting(ConfigEntry entry) => ReferenceEquals(setting, entry);
+
+        private void RegisterDebugPanel()
+        {
+            ModHelper.AddDebugPanel(ModId, "clinic", T("clinic_doctorclinic_debug"), ClinicDebugTabs, false);
             RegisterTreatmentDebugButtons();
-            ModHelper.AddDebugFunction(ModId, "诊疗", "打开诊所原型", OpenFromDebugMenu);
-            ModHelper.AddDebugFunction(ModId, "诊疗", "演练 F1 和 T1 病例", () =>
+            ModHelper.AddDebugFunction(ModId, T("clinic_treatment"), T("clinic_open_clinic_prototype"), OpenFromDebugMenu);
+            ModHelper.AddDebugFunction(ModId, T("clinic_treatment"), T("clinic_practice_f1_and_t1_cases"), () =>
                 StartBloodPractice(ConditionKind.PipeSporeDisease, ConditionKind.IndustrialToxinExposure, Antifungal, ToxinNeutralizer));
-            ModHelper.AddDebugFunction(ModId, "诊疗", "演练 O1 和 S1 病例", () =>
+            ModHelper.AddDebugFunction(ModId, T("clinic_treatment"), T("clinic_practice_o1_and_s1_cases"), () =>
                 StartBloodPractice(ConditionKind.OximorOverdose, ConditionKind.SentinelCollapse, Naloxone, Immunivax));
-            ModHelper.AddDebugFunction(ModId, "诊疗", "街区医师协会", () => ShowAssociation());
-            ModHelper.AddDebugFunction(ModId, "诊疗", "验证事故处罚过滤", ClinicPenaltyPreview.Show);
-            ModHelper.AddDebugFunction(ModId, "诊疗", "医生声望设为 +100", () => SetDebugReputation(100));
-            ModHelper.AddDebugFunction(ModId, "诊疗", "医生声望设为 −100", () => SetDebugReputation(-100));
+            ModHelper.AddDebugFunction(ModId, T("clinic_treatment"), T("clinic_neighborhood_medical_association"), () => ShowAssociation());
+            ModHelper.AddDebugFunction(ModId, T("clinic_treatment"), T("clinic_preview_incident_penalties"), ClinicPenaltyPreview.Show);
+            ModHelper.AddDebugFunction(ModId, T("clinic_treatment"), T("clinic_set_doctor_reputation_to_100"), () => SetDebugReputation(100));
+            ModHelper.AddDebugFunction(ModId, T("clinic_treatment"), T("clinic_set_doctor_reputation_to_100_2"), () => SetDebugReputation(-100));
         }
 
         public void OnDisable()
@@ -140,12 +147,14 @@ namespace DoctorClinic
             ResolvePoisonings();
             QueueTribunalIfNeeded();
             if (IsLoaded && !state.EndingPending && !state.EndingTriggered) RestoreDreamReturns(store.storeClientManager);
-            log.Log("诊所状态已初始化。");
+            log.Log(T("clinic_clinic_state_initialized"));
         }
 
         private void ReceiveAssets(LoadedMod mod)
         {
-            if (mod.Manifest.ID == ModId) clinicAssets = mod;
+            if (mod.Manifest.ID != ModId) return;
+            clinicAssets = mod;
+            RegisterDebugPanel();
         }
 
         private Sprite Art(string key)
@@ -158,9 +167,11 @@ namespace DoctorClinic
             return sprite;
         }
 
-        private void AddAbrasionArt(CustomUIBuilder ui, Abrasion wound)
+        private void AddWoundArt(CustomUIBuilder ui, ClinicCase visit, int index)
         {
+            var wound = visit.Wounds[index];
             var skin = Art("skin_base");
+            if (skin == null) return;
             var key = wound.Kind == ConditionKind.Contusion
                 ? (wound.Covered ? "bruise_cooled" : "bruise_raw")
                 : wound.Covered ? "dressing" : wound.Kind switch
@@ -170,14 +181,28 @@ namespace DoctorClinic
                     wound.Cleaned || wound.BleedingControlled ? "deep_cut_hemostasis" : "deep_cut_bleeding",
                 ConditionKind.ShallowCut => "laceration_raw",
                 ConditionKind.Burn => wound.Cooled ? "burn_cooled" : "burn_raw",
+                ConditionKind.Fracture => wound.Fixed ? "splint" : null,
                 _ => wound.Cleaned ? "abrasion_clean" : "abrasion_raw"
             };
-            var overlay = Art(key);
-            if (skin == null || overlay == null) return;
             ui.AddImage(skin, 100, 100);
             var baseImage = ui.Last.Rect;
+            if (!wound.Covered)
+            {
+                baseImage.GetComponent<UnityEngine.UI.Image>().raycastTarget = true;
+                baseImage.gameObject.AddComponent<WoundDrop>().Apply =
+                    item => TargetRegion(visit, -1, item, body: true, selectedWound: index);
+            }
+
+            var overlay = key == null ? null : Art(key);
+            if (overlay == null) return;
             ui.AddImage(overlay, 100, 100);
             var layer = ui.Last.Rect;
+            var layerImage = layer.GetComponent<UnityEngine.UI.Image>();
+            layerImage.raycastTarget = false;
+            // These stages share an existing sprite. Keep the wound shape and distinguish the cleaned state.
+            if (!wound.Covered && wound.Cleaned &&
+                (wound.Kind == ConditionKind.ShallowCut || wound.Kind == ConditionKind.Gunshot))
+                layerImage.color = new Color(1f, 1f, 1f, wound.Closed ? .42f : .68f);
             layer.SetParent(baseImage, false);
             layer.anchorMin = Vector2.zero;
             layer.anchorMax = Vector2.one;
@@ -212,11 +237,11 @@ namespace DoctorClinic
         {
             if (!IsLoaded)
             {
-                const string message = "诊所尚未初始化。请进入新游戏或载入存档后再打开。";
+                var message = T("clinic_the_clinic_is_not_ready_start_a");
                 log.Warning(message);
                 if (CustomUIManager.Instance != null)
                 {
-                    CustomUIManager.Window(DebugWindow, "诊所调试")
+                    CustomUIManager.Window(DebugWindow, T("clinic_clinic_debug"))
                         .AddLabel(message).AddCloseButton(Close).Show();
                 }
                 return;
@@ -224,7 +249,7 @@ namespace DoctorClinic
 
             showTestingControls = true;
             Show();
-            log.Log("诊所窗口已打开。");
+            log.Log(T("clinic_opened_the_clinic_window"));
         }
 
         private void Show(bool receipt = false)
@@ -248,34 +273,34 @@ namespace DoctorClinic
         {
             if (!IsLoaded || state.EndingTriggered || ModHelper.IsGameOver()) return;
             state.ReputationHalfPoints = reputation * 2;
-            state.LastReputationReason = "调试菜单调整";
+            state.LastReputationReason = "clinic_reason_debug_adjustment";
             Save();
-            log.Log($"医生声望已设为 {reputation:+0;-0;0}。");
+            log.Log(T("clinic_doctor_reputation_set_to", reputation));
             QueueTribunalIfNeeded();
         }
 
         private void ShowDebugControls()
         {
-            var ui = CustomUIManager.Window(DebugWindow, "诊所调试").SetSize(590, 480).SetDraggable(true);
-            ui.AddLabel($"医生 {state.ReputationHalfPoints / 2m:0.0}   {ClinicReputation.Title(state.ReputationHalfPoints)}   难度 {difficulty}");
+            var ui = CustomUIManager.Window(DebugWindow, T("clinic_clinic_debug")).SetSize(590, 480).SetDraggable(true);
+            ui.AddLabel(T("clinic_doctor_reputation_difficulty", state.ReputationHalfPoints / 2m, ClinicReputation.Title(state.ReputationHalfPoints), DifficultyLabel(difficulty)));
             if (state.Current?.Settlement != null)
-                ui.AddButton("查看上次结算", () => Show(receipt: true));
+                ui.AddButton(T("clinic_view_previous_bill"), () => Show(receipt: true));
             if (CounterBuyer() != null)
-                ui.AddToggle("绑定当前柜台买家，使用原版折扣和呼叫铃", bindCounterBuyer,
+                ui.AddToggle(T("clinic_bind_to_current_buyer_to_test_native"), bindCounterBuyer,
                     value => bindCounterBuyer = value);
             else
             {
                 bindCounterBuyer = false;
-                ui.AddLabel("柜台有可议价买家时可绑定，测试原版折扣和呼叫铃。");
+                ui.AddLabel(T("clinic_a_buyer_who_can_bargain_must_be"));
             }
-            ui.AddDropdown(new[] { "1 处擦伤", "2 处擦伤", "3 处擦伤" },
+            ui.AddDropdown(new[] { T("clinic_1_abrasion"), T("clinic_2_abrasions"), T("clinic_3_abrasions") },
                 testWoundCount - 1, index => testWoundCount = index + 1);
-            ui.AddDropdown(new[] { "预算波动：随机", "预算波动：−10", "预算波动：0", "预算波动：+10" },
+            ui.AddDropdown(new[] { T("clinic_budget_variation_random"), T("clinic_budget_variation_10"), T("clinic_budget_variation_0"), T("clinic_budget_variation_10_2") },
                 testBudgetOffset, index => testBudgetOffset = index);
-            ui.AddButton("下层／黑市", () => StartVisit(PatientTier.Lower));
-            ui.AddButton("治安／革命军", () => StartVisit(PatientTier.Security));
-            ui.AddButton("上层", () => StartVisit(PatientTier.Upper));
-            ui.AddButton("演练骨折、中弹和失血", StartP2Practice);
+            ui.AddButton(T("clinic_lower_levels_black_market"), () => StartVisit(PatientTier.Lower));
+            ui.AddButton(T("clinic_security_revolution"), () => StartVisit(PatientTier.Security));
+            ui.AddButton(T("clinic_upper_levels_2"), () => StartVisit(PatientTier.Upper));
+            ui.AddButton(T("clinic_practice_fractures_gunshot_wounds_and_blood_loss"), StartP2Practice);
             ui.AddCloseButton(() => CustomUIManager.Instance?.CloseWindow(DebugWindow));
             ui.Show();
         }
@@ -283,13 +308,17 @@ namespace DoctorClinic
         private void ShowBody(ClinicCase visit)
         {
             var manager = CustomUIManager.Instance;
-            var position = manager.GetWindow(BodyWindowId)?.Rect.anchoredPosition ?? new Vector2(-308, 0);
+            var previous = manager.GetWindow(BodyWindowId)?.Rect;
+            var position = previous != null ? previous.anchoredPosition : new Vector2(-308, 0);
+            var sibling = previous != null ? previous.GetSiblingIndex() : -1;
             manager.CloseWindow(BodyWindowId);
-            var ui = CustomUIManager.Window(BodyWindowId, string.IsNullOrEmpty(status) ? "人体图" : status)
+            var ui = CustomUIManager.Window(BodyWindowId, string.IsNullOrEmpty(status) ? T("clinic_body_chart") : status)
                 .SetSize(330, 618).SetPosition(position).SetDraggable(true);
             var samplingTarget = BuildPatientBody(ui, visit);
             ui.AddCloseButton(CloseBody);
-            dragPreview = ui.Show().Rect.gameObject.AddComponent<DragPreview>();
+            var rect = ui.Show().Rect;
+            if (sibling >= 0) rect.SetSiblingIndex(sibling);
+            dragPreview = rect.gameObject.AddComponent<DragPreview>();
             dragPreview.SamplingTarget = samplingTarget;
         }
 
@@ -324,7 +353,7 @@ namespace DoctorClinic
             var bodyImage = chart.GetComponent<UnityEngine.UI.Image>();
             if (bodyImage != null) bodyImage.raycastTarget = true;
 
-            for (var i = 0; i < BodyChart.Names.Length; i++)
+            for (var i = 0; i < BodyChart.RegionCount; i++)
             {
                 var region = i;
                 var index = FindWoundAt(visit, region);
@@ -340,20 +369,24 @@ namespace DoctorClinic
             TreatmentOpen && IsLoaded && state.Current != null && !state.Current.Settled
                 ? dragPreview : null;
 
+        internal RectTransform CurrentWoundDetailRect =>
+            CustomUIManager.Instance?.IsOpen(WoundDetailsWindow) == true
+                ? CustomUIManager.Instance.GetWindow(WoundDetailsWindow)?.Rect : null;
+
         private static string Progress(Abrasion wound)
         {
-            if (wound.Kind == ConditionKind.Fracture) return wound.Fixed ? "已固定，待绷带支持" : "可见骨折，待固定";
-            if (wound.Kind == ConditionKind.Contusion) return "待冷敷";
-            if (wound.Kind == ConditionKind.Burn) return wound.Cooled ? "已冷敷，待敷药覆盖" : "待冷敷";
+            if (wound.Kind == ConditionKind.Fracture) return wound.Fixed ? T("clinic_splinted_apply_a_bandage_for_support") : T("clinic_visible_fracture_apply_a_splint");
+            if (wound.Kind == ConditionKind.Contusion) return T("clinic_apply_a_cold_pack");
+            if (wound.Kind == ConditionKind.Burn) return wound.Cooled ? T("clinic_cooled_apply_a_topical_medication_bandage") : T("clinic_apply_a_cold_pack");
             if (wound.ComplexWound)
             {
-                if (wound.Kind == ConditionKind.Gunshot && !wound.ForeignBodyRemoved) return "可见子弹，待用镊子取出";
-                if (!wound.Cleaned) return "待清洁";
-                if (!wound.Closed) return "待缝合";
-                return "已缝合，待覆盖";
+                if (wound.Kind == ConditionKind.Gunshot && !wound.ForeignBodyRemoved) return T("clinic_bullet_visible_remove_it_with_forceps");
+                if (!wound.Cleaned) return T("clinic_clean_the_wound");
+                if (!wound.Closed) return T("clinic_suture_the_wound");
+                return T("clinic_sutured_apply_a_bandage");
             }
-            if (wound.Kind == ConditionKind.ShallowCut && !wound.Cleaned) return "待用酒精清洁";
-            return wound.Cleaned ? "已清洁，待包扎" : "待处理";
+            if (wound.Kind == ConditionKind.ShallowCut && !wound.Cleaned) return T("clinic_clean_with_rubbing_alcohol");
+            return wound.Cleaned ? T("clinic_cleaned_apply_a_bandage") : T("clinic_awaiting_treatment_2");
         }
 
         private static int FindWoundAt(ClinicCase visit, int region)
@@ -363,7 +396,7 @@ namespace DoctorClinic
             return -1;
         }
 
-        private void TargetRegion(ClinicCase visit, int region, GameItem item, bool body = false)
+        private void TargetRegion(ClinicCase visit, int region, GameItem item, bool body = false, int? selectedWound = null)
         {
             if (!IsCurrent(visit) || !TreatmentOpen || visit.Dead) return;
             if (body && IsSamplingSyringe(item))
@@ -396,19 +429,19 @@ namespace DoctorClinic
             if (body && treatment.HasValue && IsAnesthesia(treatment.Value) && !treatingDependence)
             {
                 if (CanUse(item)) ApplyAnesthesia(visit, item, treatment.Value);
-                else status = "请使用仍在玩家库存内的药品。";
+                else status = T("clinic_use_medicine_that_is_still_in_your");
                 if (!IsCurrent(visit)) return;
                 Save();
                 RefreshVisitPanels(visit);
                 return;
             }
-            var index = body ? FindWoundAt(visit, region) : region;
-            if (body && treatment.HasValue && (IsSystemicMedicine(treatment.Value) || treatingDependence))
+            var index = selectedWound ?? (body ? FindWoundAt(visit, region) : region);
+            if (body && !selectedWound.HasValue && treatment.HasValue && (IsSystemicMedicine(treatment.Value) || treatingDependence))
             {
                 index = visit.FindSystemicTreatment(treatment.Value);
                 if (index < 0)
                 {
-                    status = "没有适合用这件药品处理的伤病。";
+                    status = T("clinic_this_medicine_does_not_match_any_of");
                     if (CanUse(item) && ReactToTreatmentMistake(visit, stopped: false)) return;
                     RefreshVisitPanels(visit);
                     return;
@@ -425,7 +458,7 @@ namespace DoctorClinic
                 Apply(visit, index, item);
                 return;
             }
-            status = "这个部位没有可治疗的伤处。";
+            status = T("clinic_there_is_no_treatable_wound_in_this");
             if (treatment.HasValue && CanUse(item) && ReactToTreatmentMistake(visit, IsInvasiveTreatment(treatment.Value))) return;
             RefreshVisitPanels(visit);
         }
@@ -435,9 +468,9 @@ namespace DoctorClinic
             if (!IsCurrent(visit) || !TreatmentOpen || index < 0 || index >= visit.Wounds.Length) return;
             var wound = visit.Wounds[index];
             if (wound.Covered || wound.Kind != ConditionKind.OximorDependence || visit.RequiresAddictionCure(wound)) return;
-            QueueClinicReply(visit, "真的吗。。。我恐怕负担不起");
+            QueueClinicReply(visit, T("clinic_really_i_don_t_think_i_can"));
             wound.AddictionCureAccepted = true;
-            status = "患者同意根除治疗。";
+            status = T("clinic_the_patient_agreed_to_treatment_for_the");
             Save();
             CustomUIManager.Instance?.CloseWindow(WoundDetailsWindow);
             RefreshVisitPanels(visit);
@@ -448,7 +481,7 @@ namespace DoctorClinic
             if (!IsLoaded || (state.Current != null && !state.Current.Settled)) return;
             var visit = ClinicCase.Create(PatientTier.Upper, 2, 0);
             visit.Practice = true;
-            visit.PatientName = "血检演练患者";
+            visit.PatientName = T("clinic_blood_test_practice_patient");
             visit.Wounds[0].Kind = first;
             visit.Wounds[1].Kind = second;
             var supplies = new[] { firstMedicine, secondMedicine, Syringe, Analyzer };
@@ -461,7 +494,7 @@ namespace DoctorClinic
             });
             if (failure != null)
             {
-                log.Warning($"无法开始血检演练：{failure}");
+                log.Warning(T("clinic_could_not_start_blood_test_practice", failure));
                 return;
             }
             OverlayHandler.current?.UpdateInventoryStateUI();
@@ -576,38 +609,38 @@ namespace DoctorClinic
             var materialCost = treatment == Treatment.Immunivax ? immunivax.Price : (int?)null;
             var standardQuality = immunivax.ReducedQuality == null;
             if (!treatment.HasValue || !CanUse(item))
-                status = "请选择仍在玩家库存内且可取出的耗材。";
+                status = T("clinic_choose_supplies_that_can_still_be_removed");
             else if (RejectInappropriateAnesthesia(visit, treatment))
             {
                 if (!ReactToTreatmentMistake(visit, stopped: true)) RefreshVisitPanels(visit);
                 return;
             }
-            else if (treatment == Treatment.DuskReagent || treatment == Treatment.Zyanide) status = "请拖到人体图。";
+            else if (treatment == Treatment.DuskReagent || treatment == Treatment.Zyanide) status = T("clinic_drag_onto_the_body_chart");
             else if (unusableImmunivax)
             {
-                status = "这支免疫宁已空或不可用。";
+                status = T("clinic_this_immunivax_injector_is_empty_or_unusable");
                 if (wound.Kind == ConditionKind.SentinelCollapse)
                 {
-                    QueueClinicReply(visit, "你在耍我吗，里面什么都没有！", difficulty == Difficulty.困难 && visit.Patience < 2);
+                    QueueClinicReply(visit, T("clinic_are_you_kidding_me_there_s_nothing"), difficulty == Difficulty.困难 && visit.Patience < 2);
                     if (ReactToTreatmentMistake(visit, stopped: true)) return;
                 }
             }
             else if (treatment == Treatment.Oximor && wound.Kind == ConditionKind.OximorDependence && visit.RequiresAddictionCure(wound))
             {
-                status = "患者已选择根除治疗。";
-                QueueClinicReply(visit, "我想彻底戒掉。给我赛纳普斯吧。");
+                status = T("clinic_the_patient_has_chosen_treatment_for_their");
+                QueueClinicReply(visit, T("clinic_i_want_to_quit_for_good_give"));
                 if (ReactToTreatmentMistake(visit, stopped: true)) return;
             }
             else if (IsAnesthesia(treatment.Value) && !(treatment == Treatment.Oximor && wound.Kind == ConditionKind.OximorDependence))
-                status = "把麻醉品拖到人体图上。";
-            else if (wound.Hidden && visit.HiddenBudget == 0) status = "请先就隐疾取得同意。";
+                status = T("clinic_drag_the_anesthetic_onto_the_body_chart");
+            else if (wound.Hidden && visit.HiddenBudget == 0) status = T("clinic_get_the_patient_s_consent_before_treating");
             else if (difficulty == Difficulty.简单 && !valid)
-                status = wound.LinkedWound.HasValue && !visit.Wounds[wound.LinkedWound.Value].Covered ? "请先处理关联伤口。" :
-                    wound.Kind == ConditionKind.OximorDependence ? "请使用患者所需的成瘾治疗药物。" :
-                    "简单模式已拦截无效操作。";
+                status = wound.LinkedWound.HasValue && !visit.Wounds[wound.LinkedWound.Value].Covered ? T("clinic_treat_the_linked_wound_first") :
+                    wound.Kind == ConditionKind.OximorDependence ? T("clinic_use_the_medicine_appropriate_for_this_patient") :
+                    T("clinic_easy_mode_blocked_the_ineffective_action");
             else if (!valid && IsInvasiveTreatment(treatment.Value))
             {
-                status = "患者制止了这项操作。";
+                status = T("clinic_the_patient_stopped_the_procedure");
                 if (ReactToTreatmentMistake(visit, stopped: true)) return;
             }
             else
@@ -630,11 +663,11 @@ namespace DoctorClinic
                     ReplyToCompletedTreatment(visit, wound, treatment.Value);
                 }
                 if (valid) status = immunivax.ReducedQuality != null
-                    ? $"患者识别出免疫宁{immunivax.ReducedQuality}，药材按 {immunivax.Price} 信用点计费。"
-                    : tool ? "已使用可复用工具。" : "已使用一件耗材。";
+                    ? T("clinic_the_patient_recognized_the_immunivax_the_dose", immunivax.ReducedQuality, immunivax.Price)
+                    : tool ? T("clinic_used_a_reusable_tool") : T("clinic_used_one_unit_of_supplies");
                 else
                 {
-                    status = "已消耗一件耗材，治疗无效。";
+                    status = T("clinic_used_one_unit_of_supplies_with_no");
                     if (ReactToTreatmentMistake(visit, stopped: false)) return;
                 }
                 Save();
@@ -680,7 +713,7 @@ namespace DoctorClinic
             var amount = visit.ApplySettlement(state, referral || visit.Dead, doctorLoss);
             if (!visit.Settled) return;
             if (visit.PatientWalkedOut && !visit.Practice && !visit.Tutorial)
-                state.LastReputationReason = "患者失去耐心离开";
+                state.LastReputationReason = "clinic_reason_patient_walkout";
             boundBuyer = null;
             CloseBody();
             if (amount > 0) store.PayMoney(-amount, true);

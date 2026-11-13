@@ -1,3 +1,4 @@
+using static DoctorClinic.ClinicText;
 using System;
 using System.Linq;
 using HarmonyLib;
@@ -12,14 +13,19 @@ namespace DoctorClinic
 
         internal static string ClinicPhoneName(string id) => id switch
         {
-            MedicalPhone => "正规医药协会",
-            IllegalPhone => "非法医药商",
+            MedicalPhone => T("clinic_medical_association"),
+            IllegalPhone => T("clinic_black_market_medical_supplier_2"),
             _ => null
         };
 
-        private void SyncClinicPhones()
+        internal void SyncClinicPhones()
         {
             if (!IsLoaded || store.PhoneClientDict == null) return;
+            if (store.networkUpgrade != null)
+            {
+                state.MedicalChannel |= NetworkUpgrade.IsUnlocked(MedicalChannelPerk);
+                state.IllegalMedicalChannel |= NetworkUpgrade.IsUnlocked(IllegalChannelPerk);
+            }
             SyncClinicPhone(MedicalPhone, state.MedicalChannel, state.MedicalCallReadyDay, 54615);
             SyncClinicPhone(IllegalPhone, state.IllegalMedicalChannel, state.IllegalMedicalCallReadyDay, 54616);
         }
@@ -42,9 +48,10 @@ namespace DoctorClinic
                 while (contacts.ContainsKey(number)) number++;
                 phone = new StorePhoneClient { dialogFuncId = id, displayName = ClinicPhoneName(id),
                     locID = id, phoneClientType = StorePhoneClient.PhoneClientType.Supplier,
-                    cooldownDuration = PharmacyCooldownDays, dialedBefore = true };
+                    cooldownDuration = PharmacyCooldownDays };
                 contacts.Add(number, phone);
             }
+            phone.dialedBefore = true;
             phone.currentCooldown = Math.Max(0, readyDay - Today);
             phone.phoneState = phone.currentCooldown > 0 ? StorePhoneClient.PhoneState.Cooldown : StorePhoneClient.PhoneState.Regular;
         }
@@ -62,17 +69,17 @@ namespace DoctorClinic
         private Dialogue ClinicPharmacyCall(bool illegal, StorePhoneClient phone)
         {
             var speaker = ClinicPhoneName(phone.dialogFuncId);
-            if (!IsLoaded || ModHelper.IsGameOver()) return EndClinicPhoneCall(speaker, "暂时无法安排供货。");
+            if (!IsLoaded || ModHelper.IsGameOver()) return EndClinicPhoneCall(speaker, T("clinic_we_can_t_arrange_a_delivery_right"));
             var pending = illegal ? state.IllegalMedicalDeliveryPending : state.MedicalDeliveryPending;
             var readyDay = illegal ? state.IllegalMedicalCallReadyDay : state.MedicalCallReadyDay;
-            if (pending) return EndClinicPhoneCall(speaker, "已经安排药商，等他到店。");
-            if (Today < readyDay) return EndClinicPhoneCall(speaker, $"还需等 {readyDay - Today} 天才能再次叫货。");
+            if (pending) return EndClinicPhoneCall(speaker, T("clinic_a_supplier_is_already_on_the_way"));
+            if (Today < readyDay) return EndClinicPhoneCall(speaker, T("clinic_wait_more_day_s_before_placing_another", readyDay - Today));
 
-            var request = new Dialogue().SetText("PLAYER", "要求供货");
-            request.SetNextDialogue(EndClinicPhoneCall(speaker, "好，药商明天营业时到店。药品到柜台再付费。"));
-            var decline = new Dialogue().SetText("PLAYER", "暂时拒绝");
-            decline.SetNextDialogue(EndClinicPhoneCall(speaker, "好的，有需要再打来。"));
-            return new Dialogue().SetText(speaker, "要安排一次药品供货吗？")
+            var request = new Dialogue().SetText("PLAYER", T("clinic_request_a_delivery"));
+            request.SetNextDialogue(EndClinicPhoneCall(speaker, T("clinic_all_right_the_supplier_will_arrive_during")));
+            var decline = new Dialogue().SetText("PLAYER", T("clinic_not_right_now"));
+            decline.SetNextDialogue(EndClinicPhoneCall(speaker, T("clinic_all_right_call_us_when_you_need")));
+            return new Dialogue().SetText(speaker, T("clinic_would_you_like_to_order_medical_supplies"))
                 .AddChoice(DirectoryMaster.Item("$", true), "", "", request, () => RequestClinicPharmacy(illegal, phone), null)
                 .AddChoice(DirectoryMaster.Item("$", true), "", "", decline, null, null);
         }
@@ -100,6 +107,12 @@ namespace DoctorClinic
             phone.UseService();
             Save();
         }
+    }
+
+    [HarmonyPatch(typeof(PhoneBookUIManager), nameof(PhoneBookUIManager.OpenUI))]
+    internal static class ClinicPhoneBookPatch
+    {
+        private static void Prefix() => ModEntry.Active?.SyncClinicPhones();
     }
 
     [HarmonyPatch(typeof(StorePhoneClient), nameof(StorePhoneClient.GetLocalizedDisplayName))]

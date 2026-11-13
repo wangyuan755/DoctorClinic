@@ -1,3 +1,4 @@
+using static DoctorClinic.ClinicText;
 using System;
 using System.Collections.Generic;
 using HarmonyLib;
@@ -43,19 +44,19 @@ namespace DoctorClinic
                 manager.GetClientStack().Exists(client => client?.identifier == PharmacyId)) return;
 
             var sunday = Today % 7 == 0;
-            var greeting = sunday ? "协会的周日补货到了。我把医疗用品和药品摆到柜台上。"
-                : "协会的周三补货到了。我把医疗用品和药品摆到柜台上。";
-            QueuePharmacy(manager, PharmacyId, "协会药商", greeting, false,
+            var greeting = sunday ? T("clinic_the_association_s_sunday_restock_is_here")
+                : T("clinic_the_association_s_wednesday_restock_is_here");
+            QueuePharmacy(manager, PharmacyId, T("clinic_association_supplier"), greeting, false,
                 () => state.Pharmacy = new ClinicPharmacyStock { Day = Today, Arrived = true });
         }
 
         private void QueueRequestedPharmacies(StoreClientManager manager)
         {
             if (state.MedicalDeliveryPending && Today >= state.MedicalDeliveryDay)
-                QueuePharmacy(manager, RequestedPharmacyId, "协会药商", "你叫的药到了，我摆上柜台。", false,
+                QueuePharmacy(manager, RequestedPharmacyId, T("clinic_association_supplier"), T("clinic_your_medicine_order_is_here_i_ll"), false,
                     () => state.MedicalDeliveryPending = false);
             if (state.IllegalMedicalDeliveryPending && Today >= state.IllegalMedicalDeliveryDay)
-                QueuePharmacy(manager, IllegalPharmacyId, "非法药商", "你要的货到了。挑好再付钱。", true,
+                QueuePharmacy(manager, IllegalPharmacyId, T("clinic_black_market_medical_supplier"), T("clinic_i_ve_got_what_you_asked_for"), true,
                     () => state.IllegalMedicalDeliveryPending = false);
         }
 

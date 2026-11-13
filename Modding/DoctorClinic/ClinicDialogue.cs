@@ -1,3 +1,4 @@
+using static DoctorClinic.ClinicText;
 using System;
 using System.Collections.Generic;
 using HarmonyLib;
@@ -6,17 +7,17 @@ namespace DoctorClinic
 {
     public sealed partial class ModEntry
     {
-        private const string TreatmentAccidentReply = "你干什么！疯了吗！";
-        private const string IneffectiveTreatmentReply = "这真的有用吗。。。";
-        private const string WalkoutReply = "我看你压根不会治病！浪费时间！";
-        private const string CommissionDoseReply = "这是治疗的一部分吗。。。好的";
+        private static string TreatmentAccidentReply => T("clinic_what_are_you_doing_are_you_out");
+        private static string IneffectiveTreatmentReply => T("clinic_is_this_actually_helping");
+        private static string WalkoutReply => T("clinic_you_don_t_know_the_first_thing");
+        private static string CommissionDoseReply => T("clinic_is_that_part_of_the_treatment_all");
         private readonly Queue<(string Speaker, string Text, Func<bool> IsRelevant)> clinicReplies =
             new Queue<(string, string, Func<bool>)>();
 
         private void QueueClinicReply(ClinicCase visit, string text, bool afterWalkout = false)
         {
             var patient = boundBuyer;
-            var speaker = string.IsNullOrEmpty(visit.PatientName) ? "患者" : visit.PatientName;
+            var speaker = string.IsNullOrEmpty(visit.PatientName) ? T("clinic_patient") : visit.PatientName;
             clinicReplies.Enqueue((speaker, text, () =>
                 afterWalkout || (state?.Current == visit && (patient == null || IsAtCounter(patient, visit.Settled)))));
         }
@@ -57,17 +58,17 @@ namespace DoctorClinic
 
         private static string TreatmentResultReply(Abrasion wound, Treatment treatment)
         {
-            if (wound.Kind == ConditionKind.OximorOverdose) return "谢谢，清醒多了。";
+            if (wound.Kind == ConditionKind.OximorOverdose) return T("clinic_thanks_my_head_s_much_clearer_now");
             if (wound.Kind == ConditionKind.SentinelCollapse)
-                return wound.IsPerfect ? "啊，谢谢...舒服多了，又能再撑一周了..." : "总比没有好...谢了";
-            if (wound.IsCare) return "好，就如脱胎换骨一般";
+                return wound.IsPerfect ? T("clinic_ah_thank_you_i_feel_better_already") : T("clinic_better_than_nothing_thanks");
+            if (wound.IsCare) return T("clinic_wonderful_i_feel_like_a_new_person");
             if (wound.Kind == ConditionKind.OximorDependence)
-                return treatment == Treatment.Synaprest ? "感觉重获新生啊" : "暂时好点了。。。";
+                return treatment == Treatment.Synaprest ? T("clinic_i_feel_like_i_ve_got_my") : T("clinic_i_feel_a_little_better_for_now");
             if (wound.IsLifeThreatening)
-                return wound.IsPerfect ? "救命之恩，万分感激" : "谢谢你救了我";
+                return wound.IsPerfect ? T("clinic_you_saved_my_life_i_can_t") : T("clinic_thank_you_for_saving_me");
             if (wound.RequiresBloodTest)
-                return wound.IsPerfect ? "感觉好多了" : "谢谢，好受点了";
-            return wound.IsPerfect ? "谢谢，好多了" : "不错，好受点了。";
+                return wound.IsPerfect ? T("clinic_i_feel_much_better") : T("clinic_thanks_that_helped");
+            return wound.IsPerfect ? T("clinic_thank_you_much_better") : T("clinic_not_bad_that_feels_better");
         }
 
         private void ReplyToCompletedTreatment(ClinicCase visit, Abrasion wound, Treatment treatment)
@@ -75,7 +76,7 @@ namespace DoctorClinic
             if (wound.Kind == ConditionKind.OximorDependence && treatment == Treatment.Synaprest &&
                 visit.Faction != StoreClient.FACTION_UPPER)
             {
-                QueueClinicReply(visit, "我在做梦吗。。。居然能摆脱这种生活。。。总之，真的十分感谢。");
+                QueueClinicReply(visit, T("clinic_am_i_dreaming_i_really_get_to"));
                 if (!visit.Practice && !visit.Tutorial && !string.IsNullOrEmpty(visit.Faction))
                     StoreReputation.ModReputationRaw(visit.Faction, 5, true);
                 return;

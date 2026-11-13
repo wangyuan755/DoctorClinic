@@ -1,3 +1,4 @@
+using static DoctorClinic.ClinicText;
 using System.Collections.Generic;
 
 namespace DoctorClinic
@@ -18,13 +19,13 @@ namespace DoctorClinic
 
         public static string Title(int halfPoints)
         {
-            if (halfPoints <= -200) return "公民审判";
-            if (halfPoints <= -120) return "恶名在外";
-            if (halfPoints <= -40) return "备受质疑";
-            if (halfPoints < Established * 2) return "街区医生";
-            if (halfPoints < Trusted * 2) return "小有名气";
-            if (halfPoints < Renowned * 2) return "广受信赖";
-            return "街区名医";
+            if (halfPoints <= -200) return T("clinic_citizen_s_tribunal");
+            if (halfPoints <= -120) return T("clinic_notorious");
+            if (halfPoints <= -40) return T("clinic_under_scrutiny");
+            if (halfPoints < Established * 2) return T("clinic_neighborhood_doctor");
+            if (halfPoints < Trusted * 2) return T("clinic_up_and_coming");
+            if (halfPoints < Renowned * 2) return T("clinic_trusted");
+            return T("clinic_renowned_doctor");
         }
 
         public static bool HasWeeklySupply(int day, int halfPoints) =>

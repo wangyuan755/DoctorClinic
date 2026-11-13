@@ -1,3 +1,4 @@
+using static DoctorClinic.ClinicText;
 namespace DoctorClinic
 {
     internal static class ClinicPenaltyPreview
@@ -13,16 +14,16 @@ namespace DoctorClinic
             if (CustomUIManager.Instance == null) return;
             Close();
             var result = ClinicPenalty.Death(eventType != 0, eventType == 2, contract, 100, whiteGlove, aid);
-            var ui = CustomUIManager.Window(WindowId, "事故处罚预览").SetSize(520, 410);
-            ui.AddLabel("模拟上层患者的一项伤病，基础服务费 100。");
-            ui.AddDropdown(new[] { "即时误治死亡", "即时投毒死亡", "延迟投毒死亡" },
+            var ui = CustomUIManager.Window(WindowId, T("clinic_incident_penalty_preview")).SetSize(520, 410);
+            ui.AddLabel(T("clinic_simulates_one_condition_in_an_upper_levels"));
+            ui.AddDropdown(new[] { T("clinic_immediate_death_from_malpractice"), T("clinic_immediate_death_from_poisoning"), T("clinic_delayed_death_from_poisoning") },
                 eventType, value => { eventType = value; Show(); });
-            ui.AddToggle("有效合同", contract, value => { contract = value; Show(); });
-            ui.AddToggle("白手套", whiteGlove, value => { whiteGlove = value; Show(); });
-            ui.AddToggle("法律援助", aid, value => { aid = value; Show(); });
-            ui.AddLabel($"医生扣分 {result.DoctorLoss}   治安扣分 {result.SecurityLoss}   调查增加 {result.Investigation}");
-            ui.AddLabel($"赔偿 {result.Compensation}   吊销：{(result.RevokeLicense ? "是" : "否")}   消耗援助：{(result.UsesAid ? "是" : "否")}");
-            ui.AddLabel($"委托奖金 {result.CommissionPayment}   委托方声望 +{result.CommissionReputation}");
+            ui.AddToggle(T("clinic_active_contract"), contract, value => { contract = value; Show(); });
+            ui.AddToggle(T("clinic_white_glove"), whiteGlove, value => { whiteGlove = value; Show(); });
+            ui.AddToggle(T("clinic_legal_aid"), aid, value => { aid = value; Show(); });
+            ui.AddLabel(T("clinic_doctor_reputation_security_reputation_investigation", result.DoctorLoss, result.SecurityLoss, result.Investigation));
+            ui.AddLabel(T("clinic_compensation_license_revoked_legal_aid_used", result.Compensation, (result.RevokeLicense ? T("clinic_yes") : T("clinic_no")), (result.UsesAid ? T("clinic_yes") : T("clinic_no"))));
+            ui.AddLabel(T("clinic_contract_bonus_client_faction_reputation", result.CommissionPayment, result.CommissionReputation));
             ui.AddCloseButton(Close);
             ui.Show();
         }

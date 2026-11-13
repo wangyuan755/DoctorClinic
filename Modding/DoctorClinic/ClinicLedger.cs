@@ -1,3 +1,4 @@
+using static DoctorClinic.ClinicText;
 using System;
 using System.Linq;
 
@@ -307,7 +308,7 @@ namespace DoctorClinic
             {
                 var gained = Settlement.Sum(line => line.ReputationHalfPoints);
                 state.ReputationHalfPoints = Math.Max(-200, Math.Min(200, state.ReputationHalfPoints + gained - doctorLoss * 2));
-                if (gained > 0) state.LastReputationReason = "完成患者诊疗";
+                if (gained > 0) state.LastReputationReason = "clinic_reason_completed_treatment";
                 if (!Dead && !PatientWalkedOut && Wounds.All(wound => wound.Harm == 0) && !string.IsNullOrEmpty(Faction) &&
                     Wounds.Where(wound => !wound.Hidden).All(wound => wound.Covered))
                     state.SuccessfulVisits++;
@@ -391,23 +392,23 @@ namespace DoctorClinic
         };
         public string Name => Kind switch
         {
-            ConditionKind.Contusion => "挫伤",
-            ConditionKind.ShallowCut => "浅割伤",
-            ConditionKind.Fracture => "骨折",
-            ConditionKind.Gunshot => "中弹伤",
-            ConditionKind.DeepCut => "深割伤",
-            ConditionKind.Burn => "烧伤",
-            ConditionKind.BloodLoss => Diagnosed ? "失血" : "未确诊不适",
-            ConditionKind.GraywaterFever => Diagnosed ? "灰水热" : "未确诊不适",
-            ConditionKind.WoundInfection => Diagnosed ? "伤口继发感染" : "未确诊不适",
-            ConditionKind.PipeSporeDisease => Diagnosed ? "管道孢子症" : "未确诊不适",
-            ConditionKind.IndustrialToxinExposure => Diagnosed ? "工业毒素暴露" : "未确诊不适",
-            ConditionKind.SentinelCollapse => Diagnosed ? "哨兵崩溃综合征" : "未确诊不适",
-            ConditionKind.OximorOverdose => Diagnosed ? "奥克西莫过量" : "未确诊不适",
-            ConditionKind.SkinCare => "皮肤护理",
-            ConditionKind.VascularCare => "血管护理",
-            ConditionKind.OximorDependence => Diagnosed ? "奥克西莫成瘾" : "未确诊不适",
-            _ => "擦伤"
+            ConditionKind.Contusion => T("clinic_bruise"),
+            ConditionKind.ShallowCut => T("clinic_shallow_cut"),
+            ConditionKind.Fracture => T("clinic_fracture"),
+            ConditionKind.Gunshot => T("clinic_gunshot_wound"),
+            ConditionKind.DeepCut => T("clinic_deep_cut"),
+            ConditionKind.Burn => T("clinic_burn"),
+            ConditionKind.BloodLoss => Diagnosed ? T("clinic_blood_loss") : T("clinic_undiagnosed_symptoms"),
+            ConditionKind.GraywaterFever => Diagnosed ? T("clinic_graywater_fever") : T("clinic_undiagnosed_symptoms"),
+            ConditionKind.WoundInfection => Diagnosed ? T("clinic_secondary_wound_infection") : T("clinic_undiagnosed_symptoms"),
+            ConditionKind.PipeSporeDisease => Diagnosed ? T("clinic_pipe_spore_disease") : T("clinic_undiagnosed_symptoms"),
+            ConditionKind.IndustrialToxinExposure => Diagnosed ? T("clinic_industrial_toxin_exposure") : T("clinic_undiagnosed_symptoms"),
+            ConditionKind.SentinelCollapse => Diagnosed ? T("clinic_sentinel_collapse_syndrome") : T("clinic_undiagnosed_symptoms"),
+            ConditionKind.OximorOverdose => Diagnosed ? T("clinic_oxymore_overdose") : T("clinic_undiagnosed_symptoms"),
+            ConditionKind.SkinCare => T("clinic_skin_care"),
+            ConditionKind.VascularCare => T("clinic_vascular_care"),
+            ConditionKind.OximorDependence => Diagnosed ? T("clinic_oxymore_dependence") : T("clinic_undiagnosed_symptoms"),
+            _ => T("clinic_abrasion")
         };
         public bool Cleaned { get; set; }
         public bool Covered { get; set; }
@@ -440,7 +441,6 @@ namespace DoctorClinic
                 return IsBandage(treatment);
             }
             if (treatment == Treatment.Alcohol) return !Cleaned;
-            if (Kind == ConditionKind.ShallowCut) return Cleaned && IsBandage(treatment);
             return IsBandage(treatment);
         }
 
