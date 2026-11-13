@@ -1,3 +1,4 @@
+using static DoctorClinic.ClinicText;
 using System;
 using System.Linq;
 using HarmonyLib;
@@ -27,13 +28,13 @@ namespace DoctorClinic
         {
             if (treatment == Treatment.Nomore && visit.HasOximorDependence)
             {
-                status = "成瘾患者拒绝奥克莫吸。";
-                QueueClinicReply(visit, "我不要奥克莫吸！");
+                status = T("clinic_the_patient_with_oxymore_dependence_refuses_nomore");
+                QueueClinicReply(visit, T("clinic_i_don_t_want_nomore"));
                 return true;
             }
             if (treatment != Treatment.Oximor || !visit.HasUntreatedOximorOverdose) return false;
-            status = "过量患者拒绝奥克西莫。";
-            QueueClinicReply(visit, "别再给我奥克西莫了，我需要纳洛通！");
+            status = T("clinic_the_patient_refuses_more_oxymore_after_overdosing");
+            QueueClinicReply(visit, T("clinic_no_more_oxymore_i_need_naloxgone"));
             return true;
         }
 
@@ -41,28 +42,28 @@ namespace DoctorClinic
         {
             if (treatment == Treatment.Nomore && !HasUsableNomore(item))
             {
-                status = "这支奥克莫吸没有有效药液，或纯度不足。";
+                status = T("clinic_this_nomore_injector_is_empty_or_below");
                 ReactToTreatmentMistake(visit, stopped: false);
                 return;
             }
             if (!visit.Wounds.Any(wound => !wound.Hidden && wound.IsInjury &&
                 (treatment == Treatment.Nomore || !wound.RequiresBloodTest)))
             {
-                status = "患者拒绝麻醉。";
-                QueueClinicReply(visit, "想都别想！我绝不会用那种东西！");
+                status = T("clinic_the_patient_refuses_anesthesia");
+                QueueClinicReply(visit, T("clinic_absolutely_not_i_m_not_taking_that"));
                 return;
             }
             if (visit.AnesthesiaUsed)
             {
-                status = "患者说：「刚才已经用过了，不用再打。」";
+                status = T("clinic_the_patient_says_i_already_had_a");
                 return;
             }
             if (treatment != Treatment.Nomore &&
                 (visit.Faction == StoreClient.FACTION_SECURITY ||
                     !(visit.AcceptsAnesthesia ??= UnityEngine.Random.Range(0, 2) == 0)))
             {
-                status = "患者拒绝麻醉。";
-                QueueClinicReply(visit, "想都别想！我绝不会用那种东西！");
+                status = T("clinic_the_patient_refuses_anesthesia");
+                QueueClinicReply(visit, T("clinic_absolutely_not_i_m_not_taking_that"));
                 return;
             }
             var quoted = AnesthesiaPrice(treatment);
@@ -72,7 +73,7 @@ namespace DoctorClinic
             {
                 if (!ArchiveDreamDose(item, out var doseId))
                 {
-                    status = "无法保存原版回头客所需的物品记录，未施用。";
+                    status = T("clinic_could_not_save_the_item_needed_for");
                     return;
                 }
                 visit.DreamDoseId = doseId;
@@ -84,8 +85,8 @@ namespace DoctorClinic
             visit.AnesthesiaOffer = treatment;
             visit.AnesthesiaCost = quoted;
             visit.AnesthesiaWound = Array.FindIndex(visit.Wounds, wound => !wound.Hidden);
-            status = $"患者同意。已施用 {drugName}，计费 {quoted}。";
-            QueueClinicReply(visit, "。。。好吧，如果这能让我好受点");
+            status = T("clinic_the_patient_agreed_administered_for_credits", drugName, quoted);
+            QueueClinicReply(visit, T("clinic_all_right_if_it_ll_make_me"));
         }
 
         private static void ConsumeOne(GameItem item)
@@ -160,7 +161,7 @@ namespace DoctorClinic
             var dose = EmporiumEntry.Instance?.GetItemFromSoldElement(record.DoseId);
             if (dose == null)
             {
-                log.Warning("找不到梦尘辅助的存档样品，无法重建原版回头客。");
+                log.Warning(T("clinic_the_saved_dream_dust_dose_is_missing"));
                 return;
             }
             var sold = new SoldItem
@@ -173,7 +174,7 @@ namespace DoctorClinic
             try { ChemicalFeedbackHelper.QueueChemicalReturningClient(sold); }
             catch (Exception error)
             {
-                log.Warning($"原版梦尘回头客创建失败，稍后重试：{error.Message}");
+                log.Warning(T("clinic_could_not_queue_the_dream_dust_customer", error.Message));
                 return;
             }
             if (manager.chemicalFeedbackStack.Count <= before) return;
@@ -190,7 +191,7 @@ namespace DoctorClinic
             {
                 if (repliedToRepurchase || item?.identifier != dose.identifier) return;
                 repliedToRepurchase = true;
-                clinicReplies.Enqueue((client.displayName, "暂时好点了。。。", () => IsAtCounter(client, true)));
+                clinicReplies.Enqueue((client.displayName, T("clinic_i_feel_a_little_better_for_now"), () => IsAtCounter(client, true)));
             };
             client.OnDismiss += () => EmporiumEntry.Instance?.GetItemFromSoldElement(record.DoseId)?.Destroy();
         }

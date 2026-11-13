@@ -1,3 +1,4 @@
+using static DoctorClinic.ClinicText;
 using System;
 using System.Linq;
 
@@ -43,8 +44,8 @@ namespace DoctorClinic
     {
         private const string CommissionNote = "doctor_clinic_commission_note";
         private const string NativeSlip = "slip";
-        private const string RefusalLetter = "听好了，今天会有人来找你治疗。这个人不老实，受到了我们的一些“小小”的惩罚，所以我需要你暂时放下救人的念头。别担心，如果你不管他，我们会好好补偿你的~";
-        private const string AssassinationLetter = "听好了，今天会有个老熟人来找你治疗。我们随信附带了一份小礼物，希望你能够转交到他手上，最好在他不知情的情况下。在我们确认他收到礼物后，我们会好好答谢你的~";
+        private static string RefusalLetter => T("clinic_refusal_contract_letter");
+        private static string AssassinationLetter => T("clinic_assassination_contract_letter");
         private bool deliveringCommissionItems;
         private const string Reagent = "doctor_clinic_dusk_reagent";
         private int clinicOpenedDay = -1;
@@ -139,7 +140,7 @@ namespace DoctorClinic
         }
 
         private static string CommissionTitle(ClinicCommission entry) =>
-            $"{(entry.Assassination ? "暗杀" : "拒诊")}委托 · {entry.PatientName}";
+            T("clinic_contract", (entry.Assassination ? T("clinic_assassination") : T("clinic_refusal_of_treatment")), entry.PatientName);
 
         private static string CommissionLetter(ClinicCommission entry) =>
             entry.Assassination ? AssassinationLetter : RefusalLetter;
@@ -188,11 +189,11 @@ namespace DoctorClinic
             var eligible = HasActiveAssassination(visit);
             var previous = state.Poisonings.FirstOrDefault(entry => entry.CaseId == visit.Id && !entry.Resolved);
             if (!CanUse(item))
-                status = "请使用仍在玩家库存内的物品。";
+                status = T("clinic_use_an_item_that_is_still_in");
             else if (difficulty == Difficulty.简单 && !eligible)
-                status = "当前患者没有有效的暗杀委托。";
+                status = T("clinic_there_is_no_active_assassination_contract_for");
             else if (previous != null && treatment == Treatment.DuskReagent && difficulty == Difficulty.简单)
-                status = "该患者已有迟暮试剂效果。";
+                status = T("clinic_the_patient_is_already_under_the_effects");
             else
             {
                 if (!state.WhiteGlove) RecordMedicationInvestigation(visit, item.unitValue);
@@ -213,7 +214,7 @@ namespace DoctorClinic
                         CaseId = visit.Id, PatientId = visit.PatientId, DueDay = Today + 3,
                         CommissionEligible = eligible
                     });
-                status = "已施用迟暮试剂。";
+                status = T("clinic_dusk_reagent_administered");
                 Save();
             }
             RefreshVisitPanels(visit);

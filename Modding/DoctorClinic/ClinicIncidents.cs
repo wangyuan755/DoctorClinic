@@ -1,3 +1,4 @@
+using static DoctorClinic.ClinicText;
 using System;
 using System.Linq;
 
@@ -79,8 +80,8 @@ namespace DoctorClinic
             var payment = Math.Min(Math.Max(0, store.playerCash), incident.Compensation);
             if (payment > 0) store.PayMoney(payment);
             state.MedicalDebt += incident.Compensation - payment;
-            state.LastReputationReason = incident.Fatal ? "医疗事故死亡" : "治疗造成损伤";
-            log.Warning($"诊所事故：{state.LastReputationReason}，医生扣 {incident.DoctorLoss}，赔偿 {incident.Compensation}。");
+            state.LastReputationReason = incident.Fatal ? "clinic_reason_fatal_medical_incident" : "clinic_reason_treatment_injury";
+            log.Warning(T("clinic_clinic_incident_doctor_reputation_compensation", ReputationReason(state.LastReputationReason), incident.DoctorLoss, incident.Compensation));
         }
 
         private static void AddInvestigationValue(SecData security, string charge, int amount)
@@ -114,7 +115,7 @@ namespace DoctorClinic
                 state.EndingTriggered || ModHelper.IsGameOver()) return;
             if (store.playerCash < RecoveryPrice)
             {
-                ShowAssociation($"恢复执照需要 {RecoveryPrice} 信用点。");
+                ShowAssociation(T("clinic_restoring_your_license_costs_credits", RecoveryPrice));
                 return;
             }
             store.PayMoney(RecoveryPrice, true);
@@ -123,7 +124,7 @@ namespace DoctorClinic
             state.MajorIncidents = 0;
             state.ResumeAfterDay = Today;
             Save();
-            if (showAssociation) ShowAssociation("王尔德已恢复你的执照。下个营业日重新排班。");
+            if (showAssociation) ShowAssociation(T("clinic_wilde_restored_your_license_you_can_take"));
         }
 
         private void PayMedicalDebt()
@@ -136,7 +137,7 @@ namespace DoctorClinic
                 state.MedicalDebt -= payment;
                 Save();
             }
-            ShowAssociation(payment == 0 ? "没有可用于偿还赔偿的现金。" : $"已偿还赔偿 {payment}。");
+            ShowAssociation(payment == 0 ? T("clinic_you_have_no_cash_available_to_pay") : T("clinic_paid_in_compensation", payment));
         }
 
         private void QueueTribunalIfNeeded()

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Manifest>
   <ID>doctor_clinic</ID>
-  <Name>医生诊所</Name>
-  <ModVersion>0.8.11</ModVersion>
-  <Description>Rev14 诊所预览。更新电话供货、护理对话、王尔德权益和用药调查。</Description>
+  <Name>医生诊所 | DoctorClinic</Name>
+  <ModVersion>0.8.16</ModVersion>
+  <Description>经营医生诊所，治疗患者。 | Run a neighborhood clinic and treat patients. Supports Chinese and English.</Description>
   <GameVersions><Version>1.0.0.14 - 1.0.0.14</Version></GameVersions>
   <Prerequisites />
   <Assemblies><Assembly>DoctorClinic.dll</Assembly></Assemblies>

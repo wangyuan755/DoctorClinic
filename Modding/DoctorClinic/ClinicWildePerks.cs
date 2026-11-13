@@ -1,3 +1,4 @@
+using static DoctorClinic.ClinicText;
 using System;
 using HarmonyLib;
 using UnityEngine;
@@ -18,26 +19,37 @@ namespace DoctorClinic
 
         private void RegisterWildePerks()
         {
-            ModHelper.SetNetworkTabLabel(MedicalPerkTab, () => "医疗");
-            ModHelper.AddNetworkUpgrade(ModId, MedicalChannelPerk, 300, "医疗",
-                () => "医药渠道", () => "解锁正规医药协会电话，两次叫货间隔七天。",
-                null, MedicalPerkTab, "medical_channel", null);
-            ModHelper.AddNetworkUpgrade(ModId, IllegalChannelPerk, 400, "医疗",
-                () => "非法医药渠道", () => "解锁非法药商电话，向你提供非法药物及奢侈药物（可能是偷的！）",
-                null, MedicalPerkTab, "illegal_medical_channel", null);
-            ModHelper.AddNetworkUpgrade(ModId, PoisonerPerk, 400, "医疗",
-                () => "毒师", () => "王尔德会把你的联系方式挂在地下的“人才市场”，以后可能会有人来给你一些委托。。。注意，致人死亡可能会给你带来不必要的麻烦（降低治安部及上层区声望，同时治安部会调查你）",
+            ModHelper.SetNetworkTabLabel(MedicalPerkTab, () => T("clinic_medical"));
+            ModHelper.AddNetworkUpgrade(ModId, MedicalChannelPerk, 300, T("clinic_medical"),
+                () => T("clinic_medical_connections"), () => T("clinic_unlocks_the_medical_association_phone_number_orders"),
+                () => UnlockClinicPhone(illegal: false), MedicalPerkTab, "medical_channel", null);
+            ModHelper.AddNetworkUpgrade(ModId, IllegalChannelPerk, 400, T("clinic_medical"),
+                () => T("clinic_black_market_medical_connections"), () => T("clinic_unlocks_the_black_market_medical_supplier_s"),
+                () => UnlockClinicPhone(illegal: true), MedicalPerkTab, "illegal_medical_channel", null);
+            ModHelper.AddNetworkUpgrade(ModId, PoisonerPerk, 400, T("clinic_medical"),
+                () => T("clinic_poisoner"), () => T("clinic_wilde_will_put_your_contact_details_on"),
                 null, MedicalPerkTab, "poisoner", null);
-            ModHelper.AddNetworkUpgrade(ModId, WhiteGlovePerk, 800, "医疗",
-                () => "治安部的白手套", () => "（需要毒师及高于60的治安部声望）治安部也会有不方便处理的人，那么为什么不找你解决呢？你会收到来自治安部的委托，毒杀任何目标（无论委托者是谁）都不会降低治安部声望，治安部也不会因此调查你",
+            ModHelper.AddNetworkUpgrade(ModId, WhiteGlovePerk, 800, T("clinic_medical"),
+                () => T("clinic_security_s_white_glove"), () => T("clinic_requires_poisoner_and_more_than_60_security"),
                 null, MedicalPerkTab, "security_white_glove", new[] { PoisonerPerk });
-            ModHelper.AddNetworkUpgrade(ModId, LegalAidPerk, 300, "医疗",
-                () => "法律援助", () => "抵消下一次医疗事故处罚，含主动投毒。购买冷却 7 天，同一时间只持有一次。",
+            ModHelper.AddNetworkUpgrade(ModId, LegalAidPerk, 300, T("clinic_medical"),
+                () => T("clinic_legal_aid"), () => T("clinic_waives_the_penalties_for_your_next_medical"),
                 null, MedicalPerkTab, "legal_aid", null, 7);
-            ModHelper.AddNetworkUpgrade(ModId, RestoreLicensePerk, RecoveryPrice, "医疗",
-                () => "取得或恢复医生执照", () => "永久拒绝协会邀请后，可取得医生执照、协会诊疗手册及基本诊疗工具。执照吊销后也可在此恢复。",
+            ModHelper.AddNetworkUpgrade(ModId, RestoreLicensePerk, RecoveryPrice, T("clinic_medical"),
+                () => T("clinic_obtain_or_restore_a_medical_license"), () => T("clinic_if_you_permanently_declined_the_association_you"),
                 null, MedicalPerkTab, "license_restore", null, 1);
         }
+
+        private void UnlockClinicPhone(bool illegal)
+        {
+            if (!IsLoaded) return;
+            if (illegal) state.IllegalMedicalChannel = true;
+            else state.MedicalChannel = true;
+            SyncClinicPhones();
+            Save();
+        }
+
+        internal static bool IsClinicPhonePerk(string id) => id == MedicalChannelPerk || id == IllegalChannelPerk;
 
         private void SyncWildePerks()
         {
@@ -62,7 +74,7 @@ namespace DoctorClinic
             }
             catch (Exception error)
             {
-                log.Warning($"王尔德医疗服务注册失败：{error}");
+                log.Warning(T("clinic_could_not_register_wilde_s_medical_favors", error));
             }
         }
 
@@ -103,9 +115,7 @@ namespace DoctorClinic
             else
             {
                 store.PayMoney(perk.cost, true);
-                if (perk.id == MedicalChannelPerk) state.MedicalChannel = true;
-                else if (perk.id == IllegalChannelPerk) state.IllegalMedicalChannel = true;
-                else if (perk.id == PoisonerPerk) state.Poisoner = true;
+                if (perk.id == PoisonerPerk) state.Poisoner = true;
                 else if (perk.id == WhiteGlovePerk) state.WhiteGlove = true;
                 else if (perk.id == LegalAidPerk)
                 {
@@ -127,7 +137,7 @@ namespace DoctorClinic
             {
                 if (!IsMedicalPerkReady(RestoreLicensePerk) || store.playerCash < price) return false;
                 store.PayMoney(price, true);
-                ActivateFirstClinicLicense("通过王尔德取得医生执照");
+                ActivateFirstClinicLicense("clinic_reason_wilde_medical_license");
                 return true;
             });
             OverlayHandler.current?.UpdateInventoryStateUI();
@@ -158,7 +168,8 @@ namespace DoctorClinic
         {
             var upgrades = PlayerStore.Instance?.networkUpgrade;
             if (string.IsNullOrEmpty(___selectedId) || upgrades == null ||
-                !upgrades.TryGetValue(___selectedId, out var upgrade) || upgrade?.source != ModEntry.ModId) return true;
+                !upgrades.TryGetValue(___selectedId, out var upgrade) || upgrade?.source != ModEntry.ModId ||
+                ModEntry.IsClinicPhonePerk(upgrade.id)) return true;
             ModEntry.Active?.BuyMedicalPerk(upgrade);
             return false;
         }

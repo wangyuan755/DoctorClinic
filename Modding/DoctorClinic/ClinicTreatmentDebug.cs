@@ -1,3 +1,4 @@
+using static DoctorClinic.ClinicText;
 using System;
 using System.Linq;
 
@@ -5,12 +6,12 @@ namespace DoctorClinic
 {
     public sealed partial class ModEntry
     {
-        private const string WoundDebug = "伤口";
-        private const string BloodDebug = "血检与疾病";
-        private const string DependenceDebug = "成瘾与过量";
-        private const string CareDebug = "维护与护理";
-        private const string AnesthesiaDebug = "麻醉";
-        private const string MixedDebug = "复合与事故";
+        private static string WoundDebug => T("clinic_wounds");
+        private static string BloodDebug => T("clinic_blood_tests_disease");
+        private static string DependenceDebug => T("clinic_dependence_overdose");
+        private static string CareDebug => T("clinic_maintenance_care");
+        private static string AnesthesiaDebug => T("clinic_anesthesia");
+        private static string MixedDebug => T("clinic_compound_cases_incidents");
         private const string DebugMessageWindow = "doctor_clinic_treatment_debug_message";
         private const string DebugBandage = "bandage_item";
         private const string DebugAlcohol = "rubbing_alcohol";
@@ -19,71 +20,71 @@ namespace DoctorClinic
         private const string DebugOximor = "pink_injector";
         private const string DebugNomore = "pink_alt_injector";
         private const string DebugSynaprest = "black_injector";
-        private static readonly string[] ClinicDebugTabs =
-            { "诊疗", WoundDebug, BloodDebug, DependenceDebug, CareDebug, AnesthesiaDebug, MixedDebug };
+        private static string[] ClinicDebugTabs => new[]
+            { T("clinic_treatment"), WoundDebug, BloodDebug, DependenceDebug, CareDebug, AnesthesiaDebug, MixedDebug };
 
         private void RegisterTreatmentDebugButtons()
         {
-            AddTreatmentDebug(WoundDebug, "擦伤", ConditionKind.Abrasion, new[] { DebugAlcohol, DebugBandage });
-            AddTreatmentDebug(WoundDebug, "浅割伤", ConditionKind.ShallowCut, new[] { DebugAlcohol, DebugBandage, DebugHemostatic, DebugTopical });
-            AddTreatmentDebug(WoundDebug, "挫伤／淤青", ConditionKind.Contusion, new[] { MedicalPack.ColdPack });
-            AddTreatmentDebug(WoundDebug, "烧伤", ConditionKind.Burn, new[] { MedicalPack.ColdPack, DebugTopical });
-            AddTreatmentDebug(WoundDebug, "四肢骨折", ConditionKind.Fracture, new[] { MedicalPack.Splint, DebugBandage });
-            AddTreatmentDebug(WoundDebug, "深割伤", ConditionKind.DeepCut, new[] { DebugAlcohol, MedicalPack.Suture, DebugBandage });
-            AddTreatmentDebug(WoundDebug, "中弹伤", ConditionKind.Gunshot, new[] { Forceps, DebugAlcohol, MedicalPack.Suture, DebugBandage });
+            AddTreatmentDebug(WoundDebug, T("clinic_abrasion"), ConditionKind.Abrasion, new[] { DebugAlcohol, DebugBandage });
+            AddTreatmentDebug(WoundDebug, T("clinic_shallow_cut"), ConditionKind.ShallowCut, new[] { DebugAlcohol, DebugBandage, DebugHemostatic, DebugTopical });
+            AddTreatmentDebug(WoundDebug, T("clinic_bruise_contusion"), ConditionKind.Contusion, new[] { MedicalPack.ColdPack });
+            AddTreatmentDebug(WoundDebug, T("clinic_burn"), ConditionKind.Burn, new[] { MedicalPack.ColdPack, DebugTopical });
+            AddTreatmentDebug(WoundDebug, T("clinic_limb_fracture"), ConditionKind.Fracture, new[] { MedicalPack.Splint, DebugBandage });
+            AddTreatmentDebug(WoundDebug, T("clinic_deep_cut"), ConditionKind.DeepCut, new[] { DebugAlcohol, MedicalPack.Suture, DebugBandage });
+            AddTreatmentDebug(WoundDebug, T("clinic_gunshot_wound"), ConditionKind.Gunshot, new[] { Forceps, DebugAlcohol, MedicalPack.Suture, DebugBandage });
 
-            AddTreatmentDebug(BloodDebug, "失血／输血", ConditionKind.DeepCut,
+            AddTreatmentDebug(BloodDebug, T("clinic_blood_loss_transfusion"), ConditionKind.DeepCut,
                 new[] { DebugAlcohol, MedicalPack.Suture, DebugBandage, "blood_bag" },
                 new[] { ConditionKind.BloodLoss }, visit => visit.Wounds[1].LinkedWound = 0);
-            AddTreatmentDebug(BloodDebug, "灰水热（正规噬菌霉）", ConditionKind.GraywaterFever, new[] { "phagimycin_pill" });
-            AddTreatmentDebug(BloodDebug, "灰水热（无证噬菌霉）", ConditionKind.GraywaterFever, new[] { "unlicensed_phagimycin_pill" });
-            AddTreatmentDebug(BloodDebug, "伤口感染", ConditionKind.ShallowCut, new[] { DebugAlcohol, DebugBandage, "phagimycin_pill" },
+            AddTreatmentDebug(BloodDebug, T("clinic_graywater_fever_licensed_phagimycin"), ConditionKind.GraywaterFever, new[] { "phagimycin_pill" });
+            AddTreatmentDebug(BloodDebug, T("clinic_graywater_fever_unlicensed_phagimycin"), ConditionKind.GraywaterFever, new[] { "unlicensed_phagimycin_pill" });
+            AddTreatmentDebug(BloodDebug, T("clinic_wound_infection"), ConditionKind.ShallowCut, new[] { DebugAlcohol, DebugBandage, "phagimycin_pill" },
                 new[] { ConditionKind.WoundInfection }, visit => visit.Wounds[1].LinkedWound = 0);
-            AddTreatmentDebug(BloodDebug, "管道孢子病", ConditionKind.PipeSporeDisease, new[] { Antifungal });
-            AddTreatmentDebug(BloodDebug, "工业毒素暴露", ConditionKind.IndustrialToxinExposure, new[] { ToxinNeutralizer });
+            AddTreatmentDebug(BloodDebug, T("clinic_pipe_spore_disease_2"), ConditionKind.PipeSporeDisease, new[] { Antifungal });
+            AddTreatmentDebug(BloodDebug, T("clinic_industrial_toxin_exposure"), ConditionKind.IndustrialToxinExposure, new[] { ToxinNeutralizer });
 
-            AddTreatmentDebug(DependenceDebug, "奥克西莫成瘾（暂时缓解）", ConditionKind.OximorDependence,
+            AddTreatmentDebug(DependenceDebug, T("clinic_oxymore_dependence_temporary_relief"), ConditionKind.OximorDependence,
                 new[] { DebugOximor, DebugNomore }, tier: PatientTier.Lower);
-            AddTreatmentDebug(DependenceDebug, "奥克西莫成瘾（提议根除）", ConditionKind.OximorDependence,
+            AddTreatmentDebug(DependenceDebug, T("clinic_oxymore_dependence_propose_synaprest"), ConditionKind.OximorDependence,
                 new[] { DebugSynaprest }, tier: PatientTier.Lower);
-            AddTreatmentDebug(DependenceDebug, "奥克西莫成瘾（上层根除）", ConditionKind.OximorDependence,
+            AddTreatmentDebug(DependenceDebug, T("clinic_oxymore_dependence_upper_levels"), ConditionKind.OximorDependence,
                 new[] { DebugSynaprest, DebugOximor }, setup: visit => visit.AddictionRequiresCure = true);
-            AddTreatmentDebug(DependenceDebug, "奥克西莫过量（纳洛通）", ConditionKind.OximorOverdose, new[] { Naloxone, DebugOximor });
+            AddTreatmentDebug(DependenceDebug, T("clinic_oxymore_overdose_naloxgone"), ConditionKind.OximorOverdose, new[] { Naloxone, DebugOximor });
 
-            AddTreatmentDebug(CareDebug, "哨兵综合征（真品免疫宁）", ConditionKind.SentinelCollapse, new[] { Immunivax },
+            AddTreatmentDebug(CareDebug, T("clinic_sentinel_syndrome_genuine_immunivax"), ConditionKind.SentinelCollapse, new[] { Immunivax },
                 matches: item => ImmunivaxQuality(item) == (160, null), prepare: InsInjectorHelper.SetGenuine);
-            AddTreatmentDebug(CareDebug, "哨兵综合征（过期免疫宁）", ConditionKind.SentinelCollapse, new[] { Immunivax },
+            AddTreatmentDebug(CareDebug, T("clinic_sentinel_syndrome_expired_immunivax"), ConditionKind.SentinelCollapse, new[] { Immunivax },
                 matches: item => ImmunivaxQuality(item).Price == 80, prepare: InsInjectorHelper.SetExpired);
-            AddTreatmentDebug(CareDebug, "哨兵综合征（赝品免疫宁）", ConditionKind.SentinelCollapse, new[] { Immunivax },
+            AddTreatmentDebug(CareDebug, T("clinic_sentinel_syndrome_counterfeit_immunivax"), ConditionKind.SentinelCollapse, new[] { Immunivax },
                 matches: item => ImmunivaxQuality(item).Price == 40, prepare: InsInjectorHelper.SetCounterfeit);
-            AddTreatmentDebug(CareDebug, "哨兵综合征（空针拦截）", ConditionKind.SentinelCollapse, new[] { Immunivax },
+            AddTreatmentDebug(CareDebug, T("clinic_sentinel_syndrome_empty_injector"), ConditionKind.SentinelCollapse, new[] { Immunivax },
                 matches: item => ImmunivaxQuality(item).Price == 0, prepare: InsInjectorHelper.SetUnusable);
-            AddTreatmentDebug(CareDebug, "皮肤护理（永恒焕活精华液）", ConditionKind.SkinCare, new[] { "skincare_cream" });
-            AddTreatmentDebug(CareDebug, "血管护理（蓝血）", ConditionKind.VascularCare, new[] { "blue_blood_bag" });
+            AddTreatmentDebug(CareDebug, T("clinic_skin_care_eternal_rejuvenation_serum"), ConditionKind.SkinCare, new[] { "skincare_cream" });
+            AddTreatmentDebug(CareDebug, T("clinic_vascular_care_blue_blood"), ConditionKind.VascularCare, new[] { "blue_blood_bag" });
 
-            AddAnesthesiaDebug("奥克莫吸（接受麻醉）", DebugNomore, false, matches: HasUsableNomore);
-            AddAnesthesiaDebug("奥克莫吸（纯度不足）", DebugNomore, true,
+            AddAnesthesiaDebug(T("clinic_nomore_accept_anesthesia"), DebugNomore, false, matches: HasUsableNomore);
+            AddAnesthesiaDebug(T("clinic_nomore_insufficient_purity"), DebugNomore, true,
                 matches: item => !HasUsableNomore(item), prepare: item => MedsItemDirectory.SetNomoreInjectorPurity(item, 30, 30));
-            AddAnesthesiaDebug("奥克西莫（接受麻醉）", DebugOximor, true);
-            AddAnesthesiaDebug("奥克西莫（拒绝麻醉）", DebugOximor, false);
-            AddAnesthesiaDebug("梦尘（接受麻醉）", "dream_dust", true);
-            AddAnesthesiaDebug("梦尘（拒绝麻醉）", "dream_dust", false);
+            AddAnesthesiaDebug(T("clinic_oxymore_accept_anesthesia"), DebugOximor, true);
+            AddAnesthesiaDebug(T("clinic_oxymore_refuse_anesthesia"), DebugOximor, false);
+            AddAnesthesiaDebug(T("clinic_dream_dust_accept_anesthesia"), "dream_dust", true);
+            AddAnesthesiaDebug(T("clinic_dream_dust_refuse_anesthesia"), "dream_dust", false);
 
-            AddTreatmentDebug(MixedDebug, "复合伤（中弹、骨折与失血）", ConditionKind.Gunshot,
+            AddTreatmentDebug(MixedDebug, T("clinic_compound_injuries_gunshot_fracture_blood_loss"), ConditionKind.Gunshot,
                 new[] { Forceps, DebugAlcohol, MedicalPack.Suture, MedicalPack.Splint, DebugBandage, DebugBandage, "blood_bag" },
                 new[] { ConditionKind.Fracture, ConditionKind.BloodLoss }, visit =>
                 {
                     visit.Wounds[2].LinkedWound = 0;
                 });
-            AddTreatmentDebug(MixedDebug, "隐疾（擦伤与隐藏灰水热）", ConditionKind.Abrasion,
+            AddTreatmentDebug(MixedDebug, T("clinic_hidden_condition_abrasion_and_graywater_fever"), ConditionKind.Abrasion,
                 new[] { DebugBandage, "phagimycin_pill" }, new[] { ConditionKind.GraywaterFever },
                 visit => visit.Wounds[1].Hidden = true);
-            AddTreatmentDebug(MixedDebug, "护理与隐疾（蓝血与隐藏灰水热）", ConditionKind.VascularCare,
+            AddTreatmentDebug(MixedDebug, T("clinic_care_and_hidden_condition_blue_blood_and"), ConditionKind.VascularCare,
                 new[] { "blue_blood_bag", "phagimycin_pill" }, new[] { ConditionKind.GraywaterFever },
                 visit => visit.Wounds[1].Hidden = true);
-            AddTreatmentDebug(MixedDebug, "耐心（困难模式，患者制止缝合）", ConditionKind.DeepCut,
+            AddTreatmentDebug(MixedDebug, T("clinic_patience_hard_patient_stops_suturing"), ConditionKind.DeepCut,
                 new[] { DebugAlcohol, MedicalPack.Suture, DebugBandage });
-            AddTreatmentDebug(MixedDebug, "耐心（困难模式，失血患者制止缝合）", ConditionKind.DeepCut,
+            AddTreatmentDebug(MixedDebug, T("clinic_patience_hard_bleeding_patient_stops_suturing"), ConditionKind.DeepCut,
                 new[] { DebugAlcohol, MedicalPack.Suture, DebugBandage, "blood_bag" },
                 new[] { ConditionKind.BloodLoss }, visit => visit.Wounds[1].LinkedWound = 0);
         }
@@ -114,18 +115,18 @@ namespace DoctorClinic
         {
             if (!IsLoaded || ModHelper.IsGameOver())
             {
-                ShowTreatmentDebugMessage("请先进入游戏并载入可继续营业的存档。");
+                ShowTreatmentDebugMessage(T("clinic_load_a_playable_save_before_starting_a"));
                 return;
             }
             if (state.Current != null && !state.Current.Settled)
             {
                 Show();
-                ShowTreatmentDebugMessage("请先在当前病例点击「结束并结算」，再开启新的演练。");
+                ShowTreatmentDebugMessage(T("clinic_select_end_settle_in_the_current_case"));
                 return;
             }
 
             visit.Practice = true;
-            visit.PatientName = name + " · 演练患者";
+            visit.PatientName = name + T("clinic_practice_patient");
             visit.Faction = tier == PatientTier.Lower ? StoreClient.FACTION_LOWER : StoreClient.FACTION_UPPER;
             AssignRegions(visit);
             var required = supplies.AsEnumerable();
@@ -157,7 +158,7 @@ namespace DoctorClinic
         private static void ShowTreatmentDebugMessage(string message)
         {
             if (CustomUIManager.Instance == null) return;
-            CustomUIManager.Window(DebugMessageWindow, "诊疗演练")
+            CustomUIManager.Window(DebugMessageWindow, T("clinic_treatment_practice"))
                 .SetSize(450, 150).AddLabel(message)
                 .AddCloseButton(() => CustomUIManager.Instance?.CloseWindow(DebugMessageWindow)).Show();
         }

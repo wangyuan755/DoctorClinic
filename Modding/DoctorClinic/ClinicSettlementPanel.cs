@@ -1,3 +1,4 @@
+using static DoctorClinic.ClinicText;
 using System;
 using System.Linq;
 using UnityEngine;
@@ -32,7 +33,7 @@ namespace DoctorClinic
             var native = NegociationUIManager.Instance;
             if (native == null || native.uiObject == null)
             {
-                log.Warning("原版交易面板尚未初始化。");
+                log.Warning(T("clinic_the_base_game_s_trade_panel_has"));
                 return;
             }
 
@@ -107,15 +108,15 @@ namespace DoctorClinic
         private void RenderSettlement(NegotiationTabletFrame frame, ClinicCase visit, BillLine[] bill)
         {
             var scrollPosition = frame.scroll.verticalNormalizedPosition;
-            frame.clientName.text = string.IsNullOrEmpty(visit.PatientName) ? "诊疗结算" : visit.PatientName;
-            frame.clientSubtitle.text = string.IsNullOrEmpty(visit.Faction) ? "诊疗结算" : FactionName(visit.Faction) + " · 诊疗结算";
+            frame.clientName.text = string.IsNullOrEmpty(visit.PatientName) ? T("clinic_treatment_bill") : visit.PatientName;
+            frame.clientSubtitle.text = string.IsNullOrEmpty(visit.Faction) ? T("clinic_treatment_bill") : FactionName(visit.Faction) + T("clinic_treatment_bill_2");
             frame.sectionHeader.text = visit.Dead
-                ? "患者已死亡"
-                : visit.PatientWalkedOut ? "患者失去耐心，已离开"
-                : visit.Wounds.Any(wound => wound.Covered && wound.Kind == ConditionKind.SentinelCollapse) ? "已完成治疗" : "已治愈";
+                ? T("clinic_patient_deceased")
+                : visit.PatientWalkedOut ? T("clinic_patient_lost_patience_and_left")
+                : visit.Wounds.Any(wound => wound.Covered && wound.Kind == ConditionKind.SentinelCollapse) ? T("clinic_treatment_completed") : T("clinic_treated");
             var care = visit.Wounds.FirstOrDefault(wound => wound.IsCare);
             if (care != null) frame.clientSubtitle.text += $" · {care.Name}";
-            if (visit.Practice || visit.Tutorial) frame.clientSubtitle.text += " · 练习";
+            if (visit.Practice || visit.Tutorial) frame.clientSubtitle.text += T("clinic_practice");
             TabletUI.ClearChildren(frame.content);
             TabletUI.ClearChildren(frame.infoHost);
             TabletUI.ClearChildren(frame.footer);
@@ -130,7 +131,7 @@ namespace DoctorClinic
                 var line = bill[index];
                 var row = TabletUI.ListRow(frame, frame.content, TreatmentLineName(visit, index),
                     TabletUI.Credits(WoundPayable(visit, line)), false,
-                    () => $"材料 {line.Material}　基础 {line.Service}　难度 {line.DifficultyBonus}\n完美 {line.QualityBonus}　小费 {line.Tip}　折扣 −{line.Discount}",
+                    () => T("clinic_supplies_base_fee_difficulty_perfect_bonus_tip", line.Material, line.Service, line.DifficultyBonus, line.QualityBonus, line.Tip, line.Discount),
                     visit.Settled ? null : (Action)(() => ShowWoundDetails(visit, index)));
                 var visuals = row.transform.Find("Visuals");
                 var layout = row.GetComponent<LayoutElement>();
@@ -142,11 +143,11 @@ namespace DoctorClinic
                 WildNetworkUI.SetRect((RectTransform)visuals.Find("Separator"), 0, 52, 502, 2);
             }
             if (completed == 0)
-                TabletUI.TextRow(frame, frame.content, "尚无已治愈的伤病", 18, TabletStyle.INK);
+                TabletUI.TextRow(frame, frame.content, T("clinic_no_conditions_treated_yet"), 18, TabletStyle.INK);
             var infoHeight = 0f;
             if (difficulty == Difficulty.困难 && (!visit.Settled || visit.PatientWalkedOut))
             {
-                TabletUI.InfoLine(frame, frame.infoHost, infoHeight, "患者耐心", visit.Patience.ToString());
+                TabletUI.InfoLine(frame, frame.infoHost, infoHeight, T("clinic_patient_patience"), visit.Patience.ToString());
                 infoHeight += 32f;
             }
             if (visit.Settled)
@@ -154,15 +155,15 @@ namespace DoctorClinic
                 var incident = state.Incidents.LastOrDefault(entry => entry.CaseId == visit.Id);
                 if (incident != null)
                 {
-                    TabletUI.InfoLine(frame, frame.infoHost, infoHeight, $"医疗事故 · 医生声望 −{incident.DoctorLoss}",
-                        $"赔偿 {incident.Compensation} · 未偿 {state.MedicalDebt}");
+                    TabletUI.InfoLine(frame, frame.infoHost, infoHeight, T("clinic_medical_incident_doctor_reputation", incident.DoctorLoss),
+                        T("clinic_compensation_outstanding", incident.Compensation, state.MedicalDebt));
                     infoHeight += 32f;
                 }
             }
             var commission = CommissionFor(visit.Id);
             if (visit.Settled && commission?.Status == CommissionStatus.Completed && !commission.Assassination)
             {
-                TabletUI.InfoLine(frame, frame.infoHost, infoHeight, "拒诊委托报酬", TabletUI.Credits(commission.Payment));
+                TabletUI.InfoLine(frame, frame.infoHost, infoHeight, T("clinic_refusal_contract_payment"), TabletUI.Credits(commission.Payment));
                 infoHeight += 32f;
             }
             TabletUI.LayoutSection(frame, infoHeight, true, 432);
@@ -171,20 +172,20 @@ namespace DoctorClinic
             var auxiliary = bill.Sum(line => line.AuxiliaryPayable);
             var practice = visit.Practice || visit.Tutorial;
             var cost = bill.Sum(line => line.EstimatedCost);
-            TabletUI.FooterLine(frame, frame.footer, 0, "患者预算", TabletUI.Credits(visit.Budget));
-            var total = TabletUI.FooterLine(frame, frame.footer, 35, visit.Settled ? "实收" : practice ? "演练估价" : "预计实收",
+            TabletUI.FooterLine(frame, frame.footer, 0, T("clinic_patient_budget"), TabletUI.Credits(visit.Budget));
+            var total = TabletUI.FooterLine(frame, frame.footer, 35, visit.Settled ? T("clinic_paid") : practice ? T("clinic_practice_estimate") : T("clinic_estimated_payment"),
                 TabletUI.Credits(payable));
             var totalRow = total.label.transform.parent.gameObject;
             var hoverArea = totalRow.AddComponent<Image>();
             hoverArea.color = Color.clear;
             TabletUI.AddTooltip(totalRow,
-                () => $"折扣 {visit.NativeDiscountPercent}% · −{TabletUI.Credits(discount)}\n" +
-                      $"镇痛／麻醉辅助 {TabletUI.Credits(visit.Settled && practice ? 0 : auxiliary)}\n" +
-                      $"净收益 {TabletUI.Credits(payable - cost)}");
+                () => T("clinic_bill_discount_tooltip", visit.NativeDiscountPercent, TabletUI.Credits(discount)) +
+                      T("clinic_bill_anesthesia_tooltip", TabletUI.Credits(visit.Settled && practice ? 0 : auxiliary)) +
+                      T("clinic_net_earnings", TabletUI.Credits(payable - cost)));
             if (!visit.Settled)
             {
-                TabletUI.BigButton(frame, frame.buttonHost, 12, 0, "开始治疗", () => BeginTreatment(visit), 244);
-                TabletUI.BigButton(frame, frame.buttonHost, 274, 0, "结束并结算", () => Finish(visit, true, playerReferral: true), 244);
+                TabletUI.BigButton(frame, frame.buttonHost, 12, 0, T("clinic_begin_treatment"), () => BeginTreatment(visit), 244);
+                TabletUI.BigButton(frame, frame.buttonHost, 274, 0, T("clinic_end_settle"), () => Finish(visit, true, playerReferral: true), 244);
             }
             Canvas.ForceUpdateCanvases();
             frame.scroll.verticalNormalizedPosition = float.IsNaN(scrollPosition) ? 1 : scrollPosition;
@@ -213,22 +214,21 @@ namespace DoctorClinic
             if (position.HasValue) ui.SetPosition(position.Value);
             if (wound.Covered)
                 ui.AddLabel(wound.Kind == ConditionKind.SentinelCollapse
-                    ? (wound.IsPerfect ? "完美维护" : "普通维护")
-                    : (wound.IsPerfect ? "完美完成" : "普通完成"));
+                    ? (wound.IsPerfect ? T("clinic_perfect_maintenance") : T("clinic_standard_maintenance"))
+                    : (wound.IsPerfect ? T("clinic_perfect_result") : T("clinic_standard_result")));
             else if (difficulty == Difficulty.简单)
                 ui.AddLabel(wound.RequiresBloodTest
-                    ? (wound.Diagnosed ? "待治疗" : "待治疗，可用血检辅助诊断")
+                    ? (wound.Diagnosed ? T("clinic_awaiting_treatment") : T("clinic_awaiting_treatment_a_blood_test_can_help"))
                     : Progress(wound));
-            if (wound.Harm > 0) ui.AddWarning("治疗造成损伤。");
-            if (wound.Kind == ConditionKind.Abrasion || wound.Kind == ConditionKind.ShallowCut ||
-                wound.Kind == ConditionKind.Burn || wound.Kind == ConditionKind.Contusion || wound.ComplexWound)
-                AddAbrasionArt(ui, wound);
+            if (wound.Harm > 0) ui.AddWarning(T("clinic_the_treatment_caused_an_injury"));
+            if (wound.IsInjury && !wound.RequiresBloodTest)
+                AddWoundArt(ui, visit, index);
             if (wound.Kind == ConditionKind.OximorDependence && !wound.Covered &&
                 !visit.RequiresAddictionCure(wound) && !wound.Hidden && TreatmentOpen)
-                ui.AddButton("提议用赛纳普斯根除", () => ProposeAddictionCure(visit, index));
+                ui.AddButton(T("clinic_propose_synaprest_treatment"), () => ProposeAddictionCure(visit, index));
 
             if (wound.Hidden && visit.HiddenBudget == 0 && TreatmentOpen)
-                ui.AddButton($"报价并取得同意（上限 {visit.HiddenQuote}）", () =>
+                ui.AddButton(T("clinic_quote_and_request_consent_up_to", visit.HiddenQuote), () =>
                 {
                     if (!IsCurrent(visit) || !wound.Diagnosed || visit.HiddenBudget > 0 || !TreatmentOpen) return;
                     visit.HiddenBudget = visit.HiddenQuote;
@@ -243,19 +243,19 @@ namespace DoctorClinic
         private static string BillingName(ClinicCase visit, int index)
         {
             var wound = visit.Wounds[index];
-            var location = wound.RequiresBloodTest || wound.IsCare ? "全身" : BodyChart.Names[wound.Region ?? index];
-            return $"{location}，{wound.Name}";
+            var location = wound.RequiresBloodTest || wound.IsCare ? T("clinic_systemic") : BodyChart.RegionName(wound.Region ?? index);
+            return T("clinic_bill_wound", location, wound.Name);
         }
 
         private static string TreatmentLineName(ClinicCase visit, int index)
         {
             var wound = visit.Wounds[index];
-            var result = wound.Kind == ConditionKind.SentinelCollapse ? (wound.IsPerfect ? "完美维护" : "普通维护")
-                : wound.IsCare ? "护理完成"
-                : wound.Kind == ConditionKind.OximorDependence ? (visit.RequiresAddictionCure(wound) ? "根除完成" : "症状缓解")
-                : wound.UsesMedicineOnlyPricing ? "治疗完成"
-                : wound.IsPerfect ? "完美治疗" : "普通治疗";
-            return $"{BillingName(visit, index)}，{result}";
+            var result = wound.Kind == ConditionKind.SentinelCollapse ? (wound.IsPerfect ? T("clinic_perfect_maintenance") : T("clinic_standard_maintenance"))
+                : wound.IsCare ? T("clinic_care_complete")
+                : wound.Kind == ConditionKind.OximorDependence ? (visit.RequiresAddictionCure(wound) ? T("clinic_dependence_treated") : T("clinic_temporary_relief"))
+                : wound.UsesMedicineOnlyPricing ? T("clinic_treatment_complete")
+                : wound.IsPerfect ? T("clinic_perfect_treatment") : T("clinic_standard_treatment");
+            return T("clinic_bill_result", BillingName(visit, index), result);
         }
     }
 }

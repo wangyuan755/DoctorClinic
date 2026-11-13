@@ -1,10 +1,13 @@
+using static DoctorClinic.ClinicText;
 using UnityEngine;
 
 namespace DoctorClinic
 {
     internal static class BodyChart
     {
-        public static readonly string[] Names = { "左臂", "右臂", "头部", "躯干", "左腿", "右腿" };
+        private static readonly string[] RegionKeys = { "clinic_left_arm", "clinic_right_arm", "clinic_head", "clinic_torso", "clinic_left_leg", "clinic_right_leg" };
+        internal static int RegionCount => RegionKeys.Length;
+        internal static string RegionName(int index) => T(RegionKeys[index]);
 
         public static Sprite CreateSprite()
         {
