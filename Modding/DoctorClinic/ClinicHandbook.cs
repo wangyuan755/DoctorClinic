@@ -1,224 +1,257 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
 using static DoctorClinic.ClinicText;
 
 namespace DoctorClinic
 {
     public sealed partial class ModEntry
     {
+        private const string HandbookPaper = "doctor_clinic_handbook";
+        private PaperUI handbookPaper;
+
         private void ShowHandbook()
         {
-            var manager = CustomUIManager.Instance;
-            if (manager == null) return;
-            manager.CloseWindow(HandbookWindow);
-            var ui = CustomUIManager.Window(HandbookWindow, T("clinic_association_treatment_manual")).SetSize(700, 620);
-            ui.BeginTabs();
+            handbookPaper?.Close();
+            var book = PaperStarters.NewBook("guide", HandbookPaper, T("clinic_association_treatment_manual"));
+            book.background = "notebook_manual";
+            book.width = 628;
+            book.height = 804;
+            book.designWidth = 314;
+            book.designHeight = 402;
+            book.draggable = book.zoomable = book.sounds = true;
+            book.pages.Clear();
+            book.chrome = new List<PaperElementData>
+            {
+                HandbookControl("close", "paper_buttons_close1", 297, 2.5f, 14, 15),
+                HandbookControl("zoom", "paper_buttons_screen_0", 273.5f, 3.5f, 14, 15),
+                HandbookControl("flip_left", "paper_buttons_l_1", 124, 380, 16, 16),
+                HandbookControl("flip_right", "paper_buttons1", 176, 380.5f, 14, 15),
+                new PaperElementData { id = "page_indicator", type = "text", action = "page_indicator",
+                    x = 140.5f, y = 374, w = 33, h = 25, style = "page_number", align = "center", valign = "middle", wrap = false }
+            };
+            var ui = PaperUI.FromData(HandbookPaper, book, ModId);
 
-            HandbookPage(ui, "first_visit");
-            HandbookText(ui, T("clinic_manual_open"));
-            ui.BeginRow(9, TextAnchor.MiddleCenter);
-            HandbookExampleButton(ui, "clinic_begin_treatment");
-            ui.AddLabel("→");
-            HandbookBody(ui, true);
-            ui.AddLabel("→");
-            HandbookWound(ui, "abrasion_raw");
-            ui.End();
-            HandbookText(ui, T("clinic_manual_drag"));
-            ui.BeginRow(9, TextAnchor.MiddleCenter);
-            HandbookItem(ui, "rubbing_alcohol");
-            HandbookItem(ui, "bandage_item");
-            ui.AddLabel("→");
-            HandbookBody(ui, true);
-            ui.AddLabel(T("clinic_manual_or"));
-            HandbookWound(ui, "abrasion_raw");
-            ui.End();
-            HandbookStages(ui, "abrasion_raw", "abrasion_clean", "dressing");
-            HandbookText(ui, T("clinic_manual_bill"));
-            ui.BeginPanel(435, -1, TextAnchor.MiddleCenter, 8, 5);
-            ui.AddLabel(T("clinic_bill_result",
-                T("clinic_bill_wound", BodyChart.RegionName(0), T("clinic_abrasion")), T("clinic_perfect_treatment")));
-            ui.AddLabel(T("clinic_manual_example_amount", 155));
-            HandbookExampleButton(ui, "clinic_end_settle");
-            ui.End();
-            ui.End().End();
+            HandbookPage(ui, "first_visit", "clinic_manual_paper_open");
+            HandbookText(ui, "clinic_manual_open", 101, 69);
+            HandbookBody(ui, "open_body", 68, 185, true);
+            HandbookArrow(ui, 132, 236);
+            HandbookWound(ui, "abrasion_raw", 173, 207, 56);
+            HandbookText(ui, "clinic_begin_treatment", 308, 28, "section", "center");
 
-            HandbookPage(ui, "injuries");
-            HandbookText(ui, T("clinic_manual_bandages"));
-            HandbookEntry(ui, "abrasion", "abrasion");
-            HandbookEntry(ui, "shallow_cut", "shallow");
-            HandbookEntry(ui, "bruise", "bruise");
-            HandbookEntry(ui, "burn", "burn");
-            HandbookEntry(ui, "fracture", "fracture");
-            HandbookEntry(ui, "deep_cut", "deep");
-            HandbookEntry(ui, "gunshot_wound", "gunshot");
-            HandbookEntry(ui, "blood_loss", "bleeding");
-            HandbookText(ui, T("clinic_manual_multiple"));
-            ui.AddHeader(T("clinic_manual_compare"));
-            ui.AddLabel(T("clinic_manual_compare_cuts"));
-            HandbookStages(ui, false, "abrasion_raw", "laceration_raw", "deep_cut_bleeding");
-            ui.AddLabel(T("clinic_manual_compare_deep"));
-            HandbookStages(ui, "deep_cut_bleeding", "deep_cut_sutured");
-            ui.AddLabel(T("clinic_manual_compare_bullet"));
-            HandbookStages(ui, "bullet_raw", "bullet_removed");
-            ui.AddLabel(T("clinic_manual_compare_bruise"));
-            HandbookStages(ui, "bruise_raw", "bruise_cooled");
-            ui.End().End();
+            HandbookPage(ui, "first_visit", "clinic_manual_paper_drag");
+            HandbookText(ui, "clinic_manual_drag", 101, 105);
+            HandbookItem(ui, "rubbing_alcohol", 38, 212);
+            HandbookItem(ui, "bandage_item", 38, 251);
+            HandbookArrow(ui, 85, 238);
+            HandbookBody(ui, "drag_body", 112, 204, true);
+            ui.AddLocalizedText(163, 239, 27, 22, "clinic_manual_or", "caption", align: "center", fontSize: 10);
+            HandbookWound(ui, "abrasion_raw", 198, 227, 47);
+            HandbookStages(ui, 314, "abrasion_raw", "abrasion_clean", "dressing");
 
-            HandbookPage(ui, "diagnosis");
-            HandbookText(ui, T("clinic_manual_sampling"));
-            ui.BeginRow(9, TextAnchor.MiddleCenter);
-            HandbookSprite(ui, Art("self_cleaning_sampler"));
-            ui.AddLabel("→");
-            HandbookBody(ui, false);
-            ui.AddLabel("→");
-            HandbookSprite(ui, Art(BloodSampleSprite));
-            ui.AddLabel("→");
-            HandbookSprite(ui, Art("blood_analyzer"));
-            ui.End();
-            ui.AddHeader(T("clinic_manual_report_example"));
+            HandbookPage(ui, "first_visit", "clinic_manual_paper_bill");
+            HandbookText(ui, "clinic_manual_bill", 101, 124);
+            ui.AddLine(48, 247, 267, 247, 1, "#756451");
+            ui.AddText(48, 263, 219, 37, T("clinic_bill_result",
+                T("clinic_bill_wound", BodyChart.RegionName(0), T("clinic_abrasion")), T("clinic_perfect_treatment")),
+                "section", align: "center", fontSize: 12);
+            ui.AddText(48, 301, 219, 22, T("clinic_manual_example_amount", 155), "body", align: "center", fontSize: 11);
+            HandbookText(ui, "clinic_end_settle", 337, 24, "section", "center");
+
+            HandbookPage(ui, "injuries", "clinic_manual_compare_cuts");
+            HandbookEntry(ui, "abrasion", "abrasion", 100, 67);
+            HandbookEntry(ui, "shallow_cut", "shallow", 176, 67);
+            HandbookStages(ui, 256, false, "abrasion_raw", "laceration_raw", "deep_cut_bleeding");
+            HandbookText(ui, "clinic_manual_bandages", 312, 60);
+
+            HandbookPage(ui, "injuries", "clinic_manual_paper_cool");
+            HandbookEntry(ui, "bruise", "bruise", 100, 70);
+            HandbookEntry(ui, "burn", "burn", 180, 70);
+            HandbookText(ui, "clinic_manual_compare_bruise", 256, 24, "caption", "center");
+            HandbookStages(ui, 284, "bruise_raw", "bruise_cooled");
+
+            HandbookPage(ui, "injuries", "clinic_manual_paper_trauma");
+            HandbookEntry(ui, "fracture", "fracture", 100, 67);
+            HandbookEntry(ui, "deep_cut", "deep", 176, 67);
+            HandbookText(ui, "clinic_manual_compare_deep", 256, 24, "caption", "center");
+            HandbookStages(ui, 284, "deep_cut_bleeding", "deep_cut_sutured");
+
+            HandbookPage(ui, "injuries", "clinic_manual_paper_bleeding");
+            HandbookEntry(ui, "gunshot_wound", "gunshot", 100, 67);
+            HandbookEntry(ui, "blood_loss", "bleeding", 176, 78);
+            HandbookText(ui, "clinic_manual_compare_bullet", 262, 22, "caption", "center");
+            HandbookStages(ui, 286, "bullet_raw", "bullet_removed");
+            HandbookText(ui, "clinic_manual_multiple", 344, 22, "caption", "center");
+
+            HandbookPage(ui, "diagnosis", "clinic_manual_report_example");
+            HandbookText(ui, "clinic_manual_sampling", 100, 94);
+            HandbookArt(ui, 42, 207, 32, 32, "self_cleaning_sampler", "fit");
+            HandbookArrow(ui, 81, 215);
+            HandbookArt(ui, 107, 194, 26, 52, "body_front", "fit");
+            HandbookArrow(ui, 142, 215);
+            HandbookArt(ui, 171, 207, 27, 32, BloodSampleSprite, "fit");
+            HandbookArrow(ui, 207, 215);
+            HandbookArt(ui, 238, 207, 32, 32, "blood_analyzer", "fit");
+            ui.AddLine(36, 251, 278, 251, 1, "#756451");
+            var y = 257;
             foreach (var marker in new[] { "bacterial", "blood_loss", "spore", "toxin", "overdose", "sentinel", "dependence" })
-                ui.AddLabel(BloodResult(marker, marker == "bacterial"));
-            HandbookText(ui, T("clinic_manual_consent"));
-            HandbookEntry(ui, "graywater_fever", "fever");
-            HandbookEntry(ui, "secondary_wound_infection", "infection");
-            HandbookEntry(ui, "pipe_spore_disease", "spore");
-            HandbookEntry(ui, "industrial_toxin_exposure", "toxin");
-            HandbookEntry(ui, "sentinel_collapse_syndrome", "sentinel");
-            HandbookEntry(ui, "oxymore_overdose", "overdose");
-            HandbookEntry(ui, "oxymore_dependence", "dependence");
-            HandbookText(ui, T("clinic_manual_pricing"));
-            ui.End().End();
+            {
+                ui.AddText(43, y, 228, 14, BloodResult(marker, marker == "bacterial"), "caption", fontSize: 10);
+                if (marker == "bacterial") ui.Last.color = "#8C3F37";
+                y += 15;
+            }
 
-            HandbookPage(ui, "care");
-            HandbookEntry(ui, "vascular_care", "vascular");
-            HandbookDialogue(ui, "clinic_it_s_been_ages_since_my_last", "blue_blood_bag");
-            HandbookEntry(ui, "skin_care", "skin");
-            HandbookDialogue(ui, "clinic_i_haven_t_had_a_proper_skin", "skincare_cream");
-            ui.AddHeader(T("clinic_manual_anesthesia_title"));
-            HandbookText(ui, T("clinic_manual_anesthesia"));
-            ui.End().End();
+            HandbookPage(ui, "diagnosis", "clinic_manual_paper_infection");
+            HandbookEntry(ui, "graywater_fever", "fever", 100, 64);
+            HandbookEntry(ui, "secondary_wound_infection", "infection", 171, 81);
+            HandbookEntry(ui, "pipe_spore_disease", "spore", 259, 91);
 
-            ui.EndTabs();
-            ui.AddCloseButton(() => manager.CloseWindow(HandbookWindow));
+            HandbookPage(ui, "diagnosis", "clinic_manual_paper_medication");
+            HandbookEntry(ui, "industrial_toxin_exposure", "toxin", 100, 62);
+            HandbookEntry(ui, "sentinel_collapse_syndrome", "sentinel", 170, 92);
+            HandbookEntry(ui, "oxymore_overdose", "overdose", 270, 79);
+
+            HandbookPage(ui, "diagnosis", "clinic_manual_paper_consent");
+            HandbookEntry(ui, "oxymore_dependence", "dependence", 100, 121);
+            HandbookText(ui, "clinic_manual_consent", 229, 64);
+            HandbookText(ui, "clinic_manual_pricing", 304, 63);
+
+            HandbookPage(ui, "care", "clinic_manual_paper_care");
+            HandbookEntry(ui, "vascular_care", "vascular", 100, 49);
+            HandbookDialogue(ui, "clinic_it_s_been_ages_since_my_last", "blue_blood_bag", 154);
+            HandbookEntry(ui, "skin_care", "skin", 234, 49);
+            HandbookDialogue(ui, "clinic_i_haven_t_had_a_proper_skin", "skincare_cream", 288);
+
+            HandbookPage(ui, "care", "clinic_manual_anesthesia_title");
+            HandbookText(ui, "clinic_manual_anesthesia", 111, 155);
+            HandbookBody(ui, "anesthesia_body", 131, 240, false);
+
+            ui.PageShown += ApplyHandbookArt;
+            handbookPaper = ui;
             ui.Show();
         }
 
-        private static void HandbookPage(CustomUIBuilder ui, string key)
+        private static PaperElementData HandbookControl(string action, string sprite, float x, float y, float w, float h) =>
+            new PaperElementData { id = action, type = "button", action = action, sprite = sprite, x = x, y = y, w = w, h = h };
+
+        private static void HandbookPage(PaperUI ui, string chapter, string title)
         {
-            ui.BeginTab(T("clinic_manual_tab_" + key));
-            ui.BeginScroll(480);
-            ui.AddHeader(T("clinic_manual_page_" + key));
+            ui.AddPage(title);
+            ui.AddImage(18.5f, 22, 283, 116, "guide_logo", id: "guide_logo");
+            ui.AddLocalizedText(42, 35, 232, 16, "clinic_manual_tab_" + chapter, "header", align: "center", fontSize: 10);
+            ui.AddLocalizedText(32, 53, 250, 31, title, "title", align: "center", fontSize: 15);
         }
 
-        private static void HandbookText(CustomUIBuilder ui, string text)
+        private static void HandbookText(PaperUI ui, string key, float y, float height,
+            string style = "body", string align = "left") =>
+            ui.AddLocalizedText(35, y, 247, height, key, style, align: align, fontSize: 10.5f);
+
+        private static void HandbookEntry(PaperUI ui, string name, string key, float y, float height)
         {
-            ui.AddLabel(text);
-            var rect = ui.Last.Rect;
-            var label = ui.Last.text;
-            if (label == null) return;
-            label.enableWordWrapping = true;
-            label.overflowMode = TextOverflowModes.Overflow;
-            var layout = rect.GetComponent<LayoutElement>() ?? rect.gameObject.AddComponent<LayoutElement>();
-            var height = Mathf.Ceil(label.GetPreferredValues(text, 560, 0).y) + 6;
-            layout.minHeight = layout.preferredHeight = Mathf.Max(26, height);
+            ui.AddLocalizedText(35, y, 247, 18, "clinic_" + name, "section", fontSize: 12);
+            ui.AddText(35, y + 19, 247, height - 19,
+                T("clinic_manual_entry", T("clinic_manual_sign_" + key), T("clinic_manual_treat_" + key), "\n"),
+                "body", fontSize: 10.5f);
         }
 
-        private static void HandbookEntry(CustomUIBuilder ui, string name, string key)
+        private static void HandbookItem(PaperUI ui, string id, float x, float y)
         {
-            ui.AddHeader(T("clinic_" + name));
-            HandbookText(ui, T("clinic_manual_entry", T("clinic_manual_sign_" + key), T("clinic_manual_treat_" + key), "\n"));
-        }
-
-        private static void HandbookExampleButton(CustomUIBuilder ui, string key)
-        {
-            ui.AddButton(T(key), () => { });
-            var button = ui.Last.button;
-            if (button != null)
-            {
-                button.transition = Selectable.Transition.None;
-                button.interactable = false;
-            }
-        }
-
-        private void HandbookDialogue(CustomUIBuilder ui, string line, string item)
-        {
-            ui.BeginPanel(590, -1, TextAnchor.MiddleCenter, 6, 5);
-            HandbookText(ui, T("clinic_manual_quote", T(line)));
-            HandbookItem(ui, item);
-            ui.End();
-        }
-
-        private static void HandbookItem(CustomUIBuilder ui, string id)
-        {
-            // Use the original item art without granting an item or assigning a save ID.
             var item = DirectoryMaster.Create<GameItem>(id);
-            if (item != null) HandbookSprite(ui, RenderHandler.LoadFromAtlas(item.spriteAtlasPath, item.spritePath));
+            if (item != null)
+                ui.AddImage(x, y, 34, 34, item.spriteAtlasPath + "/" + item.spritePath, "fit");
         }
 
-        private static void HandbookSprite(CustomUIBuilder ui, Sprite sprite)
+        private static void HandbookDialogue(PaperUI ui, string line, string item, float y)
         {
-            if (sprite == null) return;
-            var scale = 56f / Mathf.Max(sprite.rect.width, sprite.rect.height);
-            ui.AddImage(sprite, sprite.rect.width * scale, sprite.rect.height * scale);
+            HandbookItem(ui, item, 43, y + 7);
+            ui.AddText(89, y, 181, 61, T("clinic_manual_quote", T(line)), "body", fontSize: 10.5f);
         }
 
-        private void HandbookBody(CustomUIBuilder ui, bool markArm)
+        private void HandbookBody(PaperUI ui, string id, float x, float y, bool markArm)
         {
+            HandbookArt(ui, x, y, 52, 104, "body_front", id: id);
+            if (markArm) ui.AddImage(x, y, 52, 104, null, "stretch", id + "_arm");
+        }
+
+        private static void HandbookArrow(PaperUI ui, float x, float y) =>
+            ui.AddLine(x, y, x + 15, y, 1, "#756451", "end");
+
+        private void HandbookWound(PaperUI ui, string key, float x, float y, float size)
+        {
+            HandbookArt(ui, x, y, size, size, "skin_base");
+            HandbookArt(ui, x, y, size, size, key);
+        }
+
+        private void HandbookArt(PaperUI ui, float x, float y, float w, float h,
+            string key, string fit = "stretch", string id = null)
+        {
+            // Textures used by the treatment panel may not be registered as PaperUI sprites.
+            var sprite = Art(key);
+            if (sprite != null) clinicAssets.PaperSprites[key] = sprite;
+            ui.AddImage(x, y, w, h, ModId + ":" + key, fit,
+                id ?? "illustration_" + ui.Data.pages[ui.Data.pages.Count - 1].elements.Count);
+        }
+
+        private void HandbookStages(PaperUI ui, float y, params string[] stages) =>
+            HandbookStages(ui, y, true, stages);
+
+        private void HandbookStages(PaperUI ui, float y, bool showArrows, params string[] stages)
+        {
+            var x = stages.Length == 3 ? 66f : 97f;
+            for (var i = 0; i < stages.Length; i++, x += 68)
+            {
+                HandbookWound(ui, stages[i], x, y, 45);
+                if (showArrows && i + 1 < stages.Length)
+                    HandbookArrow(ui, x + 49, y + 22);
+            }
+        }
+
+        private void ApplyHandbookArt(PaperUI ui, int page)
+        {
+            var root = ui.Root.GetComponent<Image>();
+            if (root != null && root.sprite == null)
+            {
+                root.sprite = FindNativePaperSprite("notebook_manual");
+                if (root.sprite != null) root.color = Color.white;
+            }
+            SetNativePaperSprite(ui, "guide_logo", "guide_logo");
+            foreach (var element in ui.Data.chrome)
+                if (!string.IsNullOrEmpty(element.sprite)) SetNativePaperSprite(ui, element.id, element.sprite);
+
+            var arm = ui.Get("open_body_arm")?.image ?? ui.Get("drag_body_arm")?.image;
+            if (arm == null) return;
             var body = Art("body_front");
-            var provided = body != null && body.texture.isReadable;
-            if (!provided)
+            if (body == null || !body.texture.isReadable)
             {
-                if (bodySprite == null) bodySprite = BodyChart.CreateSprite();
-                body = bodySprite;
+                arm.enabled = false;
+                return;
             }
-            ui.AddImage(body, provided ? 48 : 77, 96);
-            if (markArm)
+            if (bodyMasks == null || bodyMaskSource != body)
             {
-                if (bodyMasks == null || bodyMaskSource != body)
-                {
-                    bodyMasks?.Destroy();
-                    bodyMasks = new BodyInjuryMasks(body, provided);
-                    bodyMaskSource = body;
-                }
-                HandbookOverlay(ui.Last.Rect, bodyMasks.GetOverlay(0));
+                bodyMasks?.Destroy();
+                bodyMasks = new BodyInjuryMasks(body, true);
+                bodyMaskSource = body;
+            }
+            arm.sprite = bodyMasks.GetOverlay(0);
+            arm.color = Color.white;
+        }
+
+        private static void SetNativePaperSprite(PaperUI ui, string id, string name)
+        {
+            var image = ui.Get(id)?.image;
+            if (image != null && image.sprite == null)
+            {
+                image.sprite = FindNativePaperSprite(name);
+                if (image.sprite != null) image.color = Color.white;
             }
         }
 
-        private void HandbookWound(CustomUIBuilder ui, string key)
+        private static Sprite FindNativePaperSprite(string name)
         {
-            var skin = Art("skin_base");
-            var wound = Art(key);
-            if (skin == null || wound == null) return;
-            ui.AddImage(skin, 62, 62);
-            HandbookOverlay(ui.Last.Rect, wound);
-        }
-
-        private static void HandbookOverlay(RectTransform parent, Sprite sprite)
-        {
-            var overlay = new GameObject("Handbook illustration", typeof(RectTransform), typeof(Image));
-            var rect = (RectTransform)overlay.transform;
-            rect.SetParent(parent, false);
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.offsetMin = rect.offsetMax = Vector2.zero;
-            var image = overlay.GetComponent<Image>();
-            image.sprite = sprite;
-            image.raycastTarget = false;
-        }
-
-        private void HandbookStages(CustomUIBuilder ui, params string[] stages) => HandbookStages(ui, true, stages);
-
-        private void HandbookStages(CustomUIBuilder ui, bool arrows, params string[] stages)
-        {
-            ui.BeginRow(9, TextAnchor.MiddleCenter);
-            for (var i = 0; i < stages.Length; i++)
-            {
-                if (arrows && i != 0) ui.AddLabel("→");
-                HandbookWound(ui, stages[i]);
-            }
-            ui.End();
+            // Older installs can have the notebook sprites in the scene without a PaperAssetCatalog entry.
+            foreach (var sprite in Resources.FindObjectsOfTypeAll<Sprite>())
+                if (sprite.name == name) return sprite;
+            return null;
         }
     }
-
 }

@@ -12,6 +12,10 @@ namespace DoctorClinic
         private static string CareDebug => T("clinic_maintenance_care");
         private static string AnesthesiaDebug => T("clinic_anesthesia");
         private static string MixedDebug => T("clinic_compound_cases_incidents");
+        // Rev14 gives every tab its own column; the public build shares the vanilla Modding
+        // column, so each button keeps its tab name as a prefix there.
+        private static string DebugCategory(string tab) => ClinicCompat.DebugCategory(tab);
+        private static string DebugLabel(string tab, string name) => ClinicCompat.DebugLabel(tab, name);
         private const string DebugMessageWindow = "doctor_clinic_treatment_debug_message";
         private const string DebugBandage = "bandage_item";
         private const string DebugAlcohol = "rubbing_alcohol";
@@ -98,7 +102,7 @@ namespace DoctorClinic
             ConditionKind[] additional = null, Action<ClinicCase> setup = null, PatientTier tier = PatientTier.Upper,
             Func<GameItem, bool> matches = null, Action<GameItem> prepare = null)
         {
-            ModHelper.AddDebugFunction(ModId, tab, name, () =>
+            ModHelper.AddDebugFunction(ModId, DebugCategory(tab), DebugLabel(tab, name), () =>
             {
                 var conditions = new[] { primary }.Concat(additional ?? Array.Empty<ConditionKind>()).ToArray();
                 var visit = primary == ConditionKind.SkinCare
@@ -113,7 +117,7 @@ namespace DoctorClinic
         private void StartTreatmentDebug(string name, ClinicCase visit, PatientTier tier, string[] supplies,
             Func<GameItem, bool> matches, Action<GameItem> prepare)
         {
-            if (!IsLoaded || ModHelper.IsGameOver())
+            if (!IsLoaded || ClinicCompat.IsGameOver())
             {
                 ShowTreatmentDebugMessage(T("clinic_load_a_playable_save_before_starting_a"));
                 return;

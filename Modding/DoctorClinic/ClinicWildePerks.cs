@@ -81,7 +81,7 @@ namespace DoctorClinic
         internal bool IsMedicalPerkReady(string id)
         {
             if (!IsLoaded || state.EndingPending ||
-                state.EndingTriggered || ModHelper.IsGameOver()) return false;
+                state.EndingTriggered || ClinicCompat.IsGameOver()) return false;
             if (state.License == LicenseStatus.None)
                 return id == RestoreLicensePerk && state.InvitationPermanentlyDeclined;
             return id switch

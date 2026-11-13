@@ -8,7 +8,6 @@ namespace DoctorClinic
     {
         private const string BloodSample = "doctor_clinic_blood_sample";
         private const string BloodSampleSprite = "blood_sample_filled";
-        private const string HandbookWindow = "doctor_clinic_handbook_window";
 
         private GameItem CreateBloodSample()
         {
@@ -175,9 +174,9 @@ namespace DoctorClinic
 
         private void CloseClinicPanels()
         {
-            var manager = CustomUIManager.Instance;
             CloseBloodReport();
-            manager?.CloseWindow(HandbookWindow);
+            handbookPaper?.Close();
+            handbookPaper = null;
             ClearPharmacyOffers();
         }
     }

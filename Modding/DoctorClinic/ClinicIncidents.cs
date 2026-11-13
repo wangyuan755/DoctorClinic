@@ -112,7 +112,7 @@ namespace DoctorClinic
         private void RestoreLicense(bool showAssociation = true)
         {
             if (!IsLoaded || state.License != LicenseStatus.Revoked || state.EndingPending ||
-                state.EndingTriggered || ModHelper.IsGameOver()) return;
+                state.EndingTriggered || ClinicCompat.IsGameOver()) return;
             if (store.playerCash < RecoveryPrice)
             {
                 ShowAssociation(T("clinic_restoring_your_license_costs_credits", RecoveryPrice));
@@ -142,7 +142,7 @@ namespace DoctorClinic
 
         private void QueueTribunalIfNeeded()
         {
-            if (!IsLoaded || state.EndingTriggered || ModHelper.IsGameOver()) return;
+            if (!IsLoaded || state.EndingTriggered || ClinicCompat.IsGameOver()) return;
             if (!state.EndingPending && state.ReputationHalfPoints > -200) return;
             if (!state.EndingPending)
             {
@@ -163,11 +163,12 @@ namespace DoctorClinic
 
         private void TryTriggerTribunal()
         {
-            if (!IsLoaded || !state.EndingPending || state.EndingTriggered || ModHelper.IsGameOver()) return;
+            if (!IsLoaded || !state.EndingPending || state.EndingTriggered || ClinicCompat.IsGameOver()) return;
             Close();
             CustomUIManager.Instance?.CloseWindow(AssociationWindow);
             CloseClinicPanels();
-            if (ModHelper.TriggerEnding(ModId, TribunalEnding))
+            if (ClinicCompat.TriggerEnding(ModId, TribunalEnding, () => T("clinic_citizen_s_tribunal"),
+                () => T("clinic_angry_residents_storm_the_counter_and_smash")))
             {
                 state.EndingTriggered = true;
                 Save();

@@ -69,7 +69,7 @@ namespace DoctorClinic
         private Dialogue ClinicPharmacyCall(bool illegal, StorePhoneClient phone)
         {
             var speaker = ClinicPhoneName(phone.dialogFuncId);
-            if (!IsLoaded || ModHelper.IsGameOver()) return EndClinicPhoneCall(speaker, T("clinic_we_can_t_arrange_a_delivery_right"));
+            if (!IsLoaded || ClinicCompat.IsGameOver()) return EndClinicPhoneCall(speaker, T("clinic_we_can_t_arrange_a_delivery_right"));
             var pending = illegal ? state.IllegalMedicalDeliveryPending : state.MedicalDeliveryPending;
             var readyDay = illegal ? state.IllegalMedicalCallReadyDay : state.MedicalCallReadyDay;
             if (pending) return EndClinicPhoneCall(speaker, T("clinic_a_supplier_is_already_on_the_way"));
@@ -89,7 +89,7 @@ namespace DoctorClinic
 
         private void RequestClinicPharmacy(bool illegal, StorePhoneClient phone)
         {
-            if (!IsLoaded || ModHelper.IsGameOver()) return;
+            if (!IsLoaded || ClinicCompat.IsGameOver()) return;
             if (illegal)
             {
                 if (!state.IllegalMedicalChannel || state.IllegalMedicalDeliveryPending || Today < state.IllegalMedicalCallReadyDay) return;

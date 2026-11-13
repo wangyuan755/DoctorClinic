@@ -81,7 +81,7 @@ namespace DoctorClinic
 
         private void QueueClinicVisitors(StoreClientManager manager)
         {
-            if (!IsLoaded || Today < 8 || ModHelper.IsGameOver()) return;
+            if (!IsLoaded || Today < 8 || ClinicCompat.IsGameOver()) return;
             ReviewSuspension();
             QueueTribunalIfNeeded();
             if (state.EndingPending || state.EndingTriggered) return;

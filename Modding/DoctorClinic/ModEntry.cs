@@ -53,25 +53,28 @@ namespace DoctorClinic
             ModHook.OnWakingUpLate += QueueTribunalIfNeeded;
             ModHook.OnShutterOpenedLate += DeliverCommissions;
             ModHook.OnShutterClosedLate += StopCommissionDelivery;
-            ModHelper.AddEnding(ModId, TribunalEnding, () => T("clinic_citizen_s_tribunal"),
+            ClinicCompat.AddEnding(ModId, TribunalEnding, () => T("clinic_citizen_s_tribunal"),
                 () => T("clinic_angry_residents_storm_the_counter_and_smash"));
         }
 
         internal bool IsClinicDifficultySetting(ConfigEntry entry) => ReferenceEquals(setting, entry);
 
+        private static string ClinicDebugCategory => ClinicCompat.DebugCategory(T("clinic_treatment"));
+        private static string ClinicDebugLabel(string name) => ClinicCompat.DebugLabel(T("clinic_treatment"), name);
+
         private void RegisterDebugPanel()
         {
-            ModHelper.AddDebugPanel(ModId, "clinic", T("clinic_doctorclinic_debug"), ClinicDebugTabs, false);
+            ClinicCompat.AddDebugPanel(ModId, "clinic", T("clinic_doctorclinic_debug"), ClinicDebugTabs, false);
             RegisterTreatmentDebugButtons();
-            ModHelper.AddDebugFunction(ModId, T("clinic_treatment"), T("clinic_open_clinic_prototype"), OpenFromDebugMenu);
-            ModHelper.AddDebugFunction(ModId, T("clinic_treatment"), T("clinic_practice_f1_and_t1_cases"), () =>
+            ModHelper.AddDebugFunction(ModId, ClinicDebugCategory, ClinicDebugLabel(T("clinic_open_clinic_prototype")), OpenFromDebugMenu);
+            ModHelper.AddDebugFunction(ModId, ClinicDebugCategory, ClinicDebugLabel(T("clinic_practice_f1_and_t1_cases")), () =>
                 StartBloodPractice(ConditionKind.PipeSporeDisease, ConditionKind.IndustrialToxinExposure, Antifungal, ToxinNeutralizer));
-            ModHelper.AddDebugFunction(ModId, T("clinic_treatment"), T("clinic_practice_o1_and_s1_cases"), () =>
+            ModHelper.AddDebugFunction(ModId, ClinicDebugCategory, ClinicDebugLabel(T("clinic_practice_o1_and_s1_cases")), () =>
                 StartBloodPractice(ConditionKind.OximorOverdose, ConditionKind.SentinelCollapse, Naloxone, Immunivax));
-            ModHelper.AddDebugFunction(ModId, T("clinic_treatment"), T("clinic_neighborhood_medical_association"), () => ShowAssociation());
-            ModHelper.AddDebugFunction(ModId, T("clinic_treatment"), T("clinic_preview_incident_penalties"), ClinicPenaltyPreview.Show);
-            ModHelper.AddDebugFunction(ModId, T("clinic_treatment"), T("clinic_set_doctor_reputation_to_100"), () => SetDebugReputation(100));
-            ModHelper.AddDebugFunction(ModId, T("clinic_treatment"), T("clinic_set_doctor_reputation_to_100_2"), () => SetDebugReputation(-100));
+            ModHelper.AddDebugFunction(ModId, ClinicDebugCategory, ClinicDebugLabel(T("clinic_neighborhood_medical_association")), () => ShowAssociation());
+            ModHelper.AddDebugFunction(ModId, ClinicDebugCategory, ClinicDebugLabel(T("clinic_preview_incident_penalties")), ClinicPenaltyPreview.Show);
+            ModHelper.AddDebugFunction(ModId, ClinicDebugCategory, ClinicDebugLabel(T("clinic_set_doctor_reputation_to_100")), () => SetDebugReputation(100));
+            ModHelper.AddDebugFunction(ModId, ClinicDebugCategory, ClinicDebugLabel(T("clinic_set_doctor_reputation_to_100_2")), () => SetDebugReputation(-100));
         }
 
         public void OnDisable()
@@ -88,7 +91,7 @@ namespace DoctorClinic
             ModHook.OnShutterOpenedLate -= DeliverCommissions;
             ModHook.OnShutterClosedLate -= StopCommissionDelivery;
             RemoveClinicPhones();
-            ModHelper.RemoveEndings(ModId);
+            ClinicCompat.RemoveEndings(ModId);
             if (wildePerksRegistered)
             {
                 ModHelper.RemoveNetworkUpgrades(ModId);
@@ -109,6 +112,10 @@ namespace DoctorClinic
             bodyMasks?.Destroy();
             bodyMasks = null;
             bodyMaskSource = null;
+            if (clinicAssets != null)
+                foreach (var entry in art)
+                    if (clinicAssets.PaperSprites.TryGetValue(entry.Key, out var paperSprite) && paperSprite == entry.Value)
+                        clinicAssets.PaperSprites.Remove(entry.Key);
             foreach (var sprite in art.Values)
                 if (sprite != null) UnityEngine.Object.Destroy(sprite);
             art.Clear();
@@ -271,7 +278,7 @@ namespace DoctorClinic
 
         private void SetDebugReputation(int reputation)
         {
-            if (!IsLoaded || state.EndingTriggered || ModHelper.IsGameOver()) return;
+            if (!IsLoaded || state.EndingTriggered || ClinicCompat.IsGameOver()) return;
             state.ReputationHalfPoints = reputation * 2;
             state.LastReputationReason = "clinic_reason_debug_adjustment";
             Save();
