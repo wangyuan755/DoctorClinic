@@ -2,7 +2,7 @@
 <Manifest>
   <ID>doctor_clinic</ID>
   <Name>医生诊所 | DoctorClinic</Name>
-  <ModVersion>0.8.20</ModVersion>
+  <ModVersion>0.8.21</ModVersion>
   <Description>经营医生诊所，治疗患者。 | Run a neighborhood clinic and treat patients. Supports Chinese and English.</Description>
   <GameVersions><Version>0.46</Version><Version>1.0.0.14 - 1.0.0.14</Version></GameVersions>
   <Prerequisites />

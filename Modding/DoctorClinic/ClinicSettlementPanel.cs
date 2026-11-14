@@ -214,6 +214,9 @@ namespace DoctorClinic
             woundDetailsIndex = index;
             var ui = CustomUIManager.Window(WoundDetailsWindow, BillingName(visit, index)).SetSize(440, 340).SetDraggable(true);
             if (position.HasValue) ui.SetPosition(position.Value);
+            // This window is a supply drop target on its own, so it carries the outcome line;
+            // the body chart showing it is not required for a drop to have happened.
+            if (!string.IsNullOrEmpty(status)) ui.AddLabel(status);
             if (wound.Covered)
                 ui.AddLabel(wound.Kind == ConditionKind.SentinelCollapse
                     ? (wound.IsPerfect ? T("clinic_perfect_maintenance") : T("clinic_standard_maintenance"))
@@ -226,13 +229,13 @@ namespace DoctorClinic
             if (wound.IsInjury && !wound.RequiresBloodTest)
                 AddWoundArt(ui, visit, index);
             if (wound.Kind == ConditionKind.OximorDependence && !wound.Covered &&
-                !visit.RequiresAddictionCure(wound) && !wound.Hidden && TreatmentOpen)
+                !visit.RequiresAddictionCure(wound) && !wound.Hidden && TreatmentUiOpen)
                 ui.AddButton(T("clinic_propose_synaprest_treatment"), () => ProposeAddictionCure(visit, index));
 
-            if (wound.Hidden && visit.HiddenBudget == 0 && TreatmentOpen)
+            if (wound.Hidden && visit.HiddenBudget == 0 && TreatmentUiOpen)
                 ui.AddButton(T("clinic_quote_and_request_consent_up_to", visit.HiddenQuote), () =>
                 {
-                    if (!IsCurrent(visit) || !wound.Diagnosed || visit.HiddenBudget > 0 || !TreatmentOpen) return;
+                    if (!IsCurrent(visit) || !wound.Diagnosed || visit.HiddenBudget > 0 || !TreatmentUiOpen) return;
                     visit.HiddenBudget = visit.HiddenQuote;
                     Save();
                     manager.CloseWindow(WoundDetailsWindow);

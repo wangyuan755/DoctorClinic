@@ -20,6 +20,11 @@ namespace DoctorClinic
         private ConfigEntry<Difficulty> setting;
         private Difficulty difficulty;
         private bool TreatmentOpen => CustomUIManager.Instance?.IsOpen(BodyWindowId) == true;
+
+        // The settlement tablet opens the wound details window without Begin Treatment, and
+        // that window is a supply drop target of its own. Interaction checks must accept it.
+        private bool TreatmentUiOpen => TreatmentOpen ||
+            CustomUIManager.Instance?.IsOpen(WoundDetailsWindow) == true;
         private Sprite bodySprite;
         private BodyInjuryMasks bodyMasks;
         private Sprite bodyMaskSource;
@@ -336,6 +341,14 @@ namespace DoctorClinic
             if (TreatmentOpen) ShowBody(visit);
         }
 
+        // The details window is the only open clinic panel when a supply is dropped there,
+        // so it has to redraw itself for the outcome (wound art and the status line) to show.
+        private void RefreshWoundDetails(ClinicCase visit, int? index)
+        {
+            if (index.HasValue && CustomUIManager.Instance?.IsOpen(WoundDetailsWindow) == true)
+                ShowWoundDetails(visit, index.Value);
+        }
+
         // Only charts with nothing to click get a standing hint: a patient whose conditions
         // are all systemic shows no wound on the body, and that reads as an empty patient.
         private static string ChartHint(ClinicCase visit)
@@ -390,6 +403,14 @@ namespace DoctorClinic
             TreatmentOpen && IsLoaded && state.Current != null && !state.Current.Settled
                 ? dragPreview : null;
 
+        // The wound details window has its own drop target and the settlement tablet opens it
+        // without going through Begin Treatment, so a drop must not require the chart.
+        internal bool CanAcceptClinicDrops => IsLoaded && state?.Current != null && !state.Current.Settled;
+
+        internal RectTransform BodyWindowRect =>
+            CustomUIManager.Instance?.IsOpen(BodyWindowId) == true
+                ? CustomUIManager.Instance.GetWindow(BodyWindowId)?.Rect : null;
+
         internal RectTransform CurrentWoundDetailRect =>
             CustomUIManager.Instance?.IsOpen(WoundDetailsWindow) == true
                 ? CustomUIManager.Instance.GetWindow(WoundDetailsWindow)?.Rect : null;
@@ -419,10 +440,11 @@ namespace DoctorClinic
 
         private void TargetRegion(ClinicCase visit, int region, GameItem item, bool body = false, int? selectedWound = null)
         {
-            if (!IsCurrent(visit) || !TreatmentOpen || visit.Dead) return;
+            if (!IsCurrent(visit) || !TreatmentUiOpen || visit.Dead) return;
             if (body && IsSamplingSyringe(item))
             {
                 DrawBlood(visit, item);
+                RefreshWoundDetails(visit, selectedWound);
                 return;
             }
             var treatment = Identify(item);
@@ -444,6 +466,7 @@ namespace DoctorClinic
             if (body && (treatment == Treatment.DuskReagent || treatment == Treatment.Zyanide))
             {
                 ApplyClinicPoison(visit, item, treatment.Value);
+                RefreshWoundDetails(visit, selectedWound);
                 return;
             }
             var treatingDependence = treatment == Treatment.Oximor && visit.HasOximorDependence;
@@ -454,6 +477,7 @@ namespace DoctorClinic
                 if (!IsCurrent(visit)) return;
                 Save();
                 RefreshVisitPanels(visit);
+                RefreshWoundDetails(visit, selectedWound);
                 return;
             }
             var index = selectedWound ?? (body ? FindWoundAt(visit, region) : region);
@@ -486,7 +510,7 @@ namespace DoctorClinic
 
         private void ProposeAddictionCure(ClinicCase visit, int index)
         {
-            if (!IsCurrent(visit) || !TreatmentOpen || index < 0 || index >= visit.Wounds.Length) return;
+            if (!IsCurrent(visit) || !TreatmentUiOpen || index < 0 || index >= visit.Wounds.Length) return;
             var wound = visit.Wounds[index];
             if (wound.Covered || wound.Kind != ConditionKind.OximorDependence || visit.RequiresAddictionCure(wound)) return;
             QueueClinicReply(visit, T("clinic_really_i_don_t_think_i_can"));
