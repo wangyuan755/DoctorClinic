@@ -133,6 +133,13 @@ namespace DoctorClinic
         public int Bonus { get; set; }
         public Abrasion[] Wounds { get; set; }
         public int NativeDiscountPercent { get; set; }
+        // The native bargain UI raises the counter price in place; the clinic bill is
+        // priced by this mod, so it has to carry the accepted markup itself.
+        public int NativeMarkupPercent { get; set; }
+        // The native bargain UI walks a customer out when they refuse a markup. That visit
+        // still owes the un-raised bill, and only the dismissal hook can see it happen.
+        public bool MarkupRefusalHandled { get; set; }
+        public int MarkupRefusedPercent { get; set; }
         public bool Settled { get; set; }
         public int Paid { get; set; }
         public BillLine[] Settlement { get; set; }
@@ -168,12 +175,29 @@ namespace DoctorClinic
         public int Charge(Abrasion wound) =>
             wound.Covered ? wound.BillableCost + Fee + WoundDifficultyBonus(wound) + WoundQualityBonus(wound) : 0;
 
+        // Price of the wound alone, before the anesthesia add-on, with markup and discount applied.
+        private int WoundPayablePrice(Abrasion wound, int legacy, int markupPercent, int discountPercent)
+        {
+            var basePrice = Charge(wound);
+            var markedUp = (int)Math.Round(basePrice * (1d + markupPercent / 100d));
+            var net = (int)Math.Round(markedUp * (1d - discountPercent / 100d));
+            return legacy > 0 ? Math.Min(net, basePrice - Math.Min(basePrice, legacy)) : net;
+        }
+
         private static int WoundDifficultyBonus(Abrasion wound) =>
             wound.Covered && !wound.UsesMedicineOnlyPricing ? wound.DifficultyBonus : 0;
 
         private int WoundQualityBonus(Abrasion wound) => wound.IsPerfect && !wound.UsesMedicineOnlyPricing ? Bonus : 0;
 
         public bool CanSettle => Wounds.Any(wound => wound.Covered);
+
+        // A patient whose only conditions are systemic shows nothing on the body chart.
+        // The chart surfaces a hint so a player does not read that as "no patient here".
+        public bool HasVisibleInjury => Wounds.Any(wound => !wound.Hidden && !wound.RequiresBloodTest);
+        public bool HasSystemicCondition => Wounds.Any(wound => !wound.Hidden && wound.RequiresBloodTest);
+        public bool HasUndiagnosedSystemic => Wounds.Any(wound => !wound.Hidden && wound.RequiresBloodTest && !wound.Diagnosed);
+        public bool HasBloodReport => ReportRevision >= 0 && ReportRevision == SampleRevision && SampleRevision == BloodRevision;
+        public bool HasValidSample => SampleRevision >= 0 && SampleRevision == BloodRevision;
 
         public bool RequiresAddictionCure(Abrasion wound) => AddictionRequiresCure || wound.AddictionCureAccepted;
         public bool HasOximorDependence => Wounds.Any(wound => wound.Kind == ConditionKind.OximorDependence);
@@ -263,16 +287,19 @@ namespace DoctorClinic
                 var gross = Charge(wound) + auxiliary;
                 var legacy = Math.Min(gross, Math.Max(0, wound.Discount));
                 var percent = Math.Max(0, Math.Min(100, NativeDiscountPercent));
-                // Rev14 rounds the discounted price, not the discount amount.
-                var discountedPrice = (int)Math.Round(gross * (1d - percent / 100d));
-                var net = Math.Min(gross - legacy, discountedPrice);
+                var markup = Math.Max(0, Math.Min(100, NativeMarkupPercent));
+                // The customer accepted the markup, so the bill starts there; a discount is
+                // then taken off that price. A legacy discount only lowers the base price.
+                var markedUpPrice = (int)Math.Round(gross * (1d + markup / 100d));
+                var net = (int)Math.Round(markedUpPrice * (1d - percent / 100d));
+                if (legacy > 0) net = Math.Min(net, gross - legacy);
                 var tip = wound.Hidden && wound.Covered && !wound.UsesMedicineOnlyPricing && HiddenBudget > 0 ? 100 : 0;
                 var payable = wound.Hidden ? Math.Min(hiddenBalance, net + tip) : Math.Min(balance, net);
-                var auxiliaryNet = auxiliary == 0 ? 0 : Math.Max(0, net -
-                    Math.Min(Charge(wound) - Math.Min(Charge(wound), legacy),
-                        (int)Math.Round(Charge(wound) * (1d - percent / 100d))));
+                var woundNet = WoundPayablePrice(wound, legacy, markup, percent);
+                var auxiliaryNet = auxiliary == 0 ? 0 : Math.Max(0, net - woundNet);
                 var auxiliaryPayable = Math.Min(payable, auxiliaryNet);
-                if (PatientWalkedOut) payable = auxiliaryPayable = 0;
+                // Walking out over a refused markup forfeits the raise, not the bill.
+                if (PatientWalkedOut && !MarkupRefusalHandled) payable = auxiliaryPayable = 0;
                 if (wound.Hidden) hiddenBalance -= payable;
                 else balance -= payable;
                 return new BillLine
@@ -283,11 +310,12 @@ namespace DoctorClinic
                     QualityBonus = WoundQualityBonus(wound),
                     Gross = gross + tip,
                     Discount = gross - net,
+                    Markup = net - gross,
                     Tip = tip,
                     Payable = payable,
                     AuxiliaryPayable = auxiliaryPayable,
                     EstimatedCost = wound.EstimatedCost + (index == costIndex ? AnesthesiaCost + WastedAnesthesiaCost : 0),
-                    ReputationHalfPoints = wound.Covered && !PatientWalkedOut
+                    ReputationHalfPoints = wound.Covered && !PatientWalkedOut && !MarkupRefusalHandled
                         ? (wound.IsPerfect && !wound.UsesMedicineOnlyPricing ? 2 : 1) : 0
                 };
             }).ToArray();
@@ -307,7 +335,11 @@ namespace DoctorClinic
             else
             {
                 var gained = Settlement.Sum(line => line.ReputationHalfPoints);
-                state.ReputationHalfPoints = Math.Max(-200, Math.Min(200, state.ReputationHalfPoints + gained - doctorLoss * 2));
+                // A refused markup costs the doctor as well; the native UI already docked
+                // the faction, so only the clinic's own reputation is applied here.
+                var refusalLoss = MarkupRefusalHandled ? 4 : 0;
+                state.ReputationHalfPoints = Math.Max(-200, Math.Min(200,
+                    state.ReputationHalfPoints + gained - doctorLoss * 2 - refusalLoss));
                 if (gained > 0) state.LastReputationReason = "clinic_reason_completed_treatment";
                 if (!Dead && !PatientWalkedOut && Wounds.All(wound => wound.Harm == 0) && !string.IsNullOrEmpty(Faction) &&
                     Wounds.Where(wound => !wound.Hidden).All(wound => wound.Covered))
@@ -326,6 +358,7 @@ namespace DoctorClinic
         public int QualityBonus { get; set; }
         public int Gross { get; set; }
         public int Discount { get; set; }
+        public int Markup { get; set; }
         public int Payable { get; set; }
         public int AuxiliaryPayable { get; set; }
         public int Tip { get; set; }

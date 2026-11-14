@@ -14,6 +14,20 @@ namespace DoctorClinic
         }
     }
 
+    [HarmonyPatch(typeof(BargainUIManager), nameof(BargainUIManager.OfferMarkup))]
+    internal static class ClinicMarkupPatch
+    {
+        // OfferMarkup sets markupOffered/markupPercent before it knows the outcome; only
+        // markupApplied tells an accepted offer from a refused one or a customer walking out.
+        private static void Postfix(StoreClient ___trackedClient, bool ___markupApplied, int ___markupPercent)
+        {
+            if (___markupApplied && ___markupPercent > 0)
+                ModEntry.Active?.OnNativeMarkup(___trackedClient, ___markupPercent);
+            else if (!___markupApplied && ___markupPercent > 0)
+                ModEntry.Active?.OnMarkupRefused(___trackedClient, ___markupPercent);
+        }
+    }
+
     [HarmonyPatch(typeof(NegociationUIManager), "RefreshNow")]
     internal static class ClinicTabletRefreshPatch
     {

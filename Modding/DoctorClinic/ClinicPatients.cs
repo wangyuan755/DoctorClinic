@@ -1,4 +1,5 @@
 using static DoctorClinic.ClinicText;
+using System;
 using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
@@ -447,7 +448,8 @@ namespace DoctorClinic
             {
                 var rep = state.ReputationHalfPoints;
                 ui.AddLabel(T("clinic_doctor_reputation", rep / 2m, ClinicReputation.Title(rep)));
-                ui.AddLabel(T("clinic_license_joined_on_day", (state.License == LicenseStatus.Active ? T("clinic_active") : state.License == LicenseStatus.Suspended ? T("clinic_suspended_pending_investigation") : T("clinic_revoked")), state.JoinedDay));
+                // JoinedDay is the day the license was obtained, not days since joining.
+                ui.AddLabel(T("clinic_license_joined_on_day", (state.License == LicenseStatus.Active ? T("clinic_active") : state.License == LicenseStatus.Suspended ? T("clinic_suspended_pending_investigation") : T("clinic_revoked")), state.JoinedDay, Math.Max(0, Today - state.JoinedDay)));
                 ui.AddLabel(T("clinic_completed_visits_conditions_per_patient_up_to", state.SuccessfulVisits, ClinicReputation.MaxConditions(state.SuccessfulVisits)));
                 ui.AddLabel(T("clinic_latest_reputation_change", ReputationReason(state.LastReputationReason)));
                 ui.AddLabel(rep < ClinicReputation.Established * 2 ? T("clinic_reach_reputation_to_see_more_patients", ClinicReputation.Established) :

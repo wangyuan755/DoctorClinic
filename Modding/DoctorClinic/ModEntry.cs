@@ -11,6 +11,7 @@ namespace DoctorClinic
         internal const string ModId = "doctor_clinic";
         private const string DebugWindow = "doctor_clinic_debug";
         private const string BodyWindowId = "doctor_clinic_body";
+        private const string ClinicStatusLabel = "clinic_status";
         private const string StateKey = "prototype_v1";
         internal static ModEntry Active { get; private set; }
         private ClinicState state;
@@ -319,7 +320,7 @@ namespace DoctorClinic
             var position = previous != null ? previous.anchoredPosition : new Vector2(-308, 0);
             var sibling = previous != null ? previous.GetSiblingIndex() : -1;
             manager.CloseWindow(BodyWindowId);
-            var ui = CustomUIManager.Window(BodyWindowId, string.IsNullOrEmpty(status) ? T("clinic_body_chart") : status)
+            var ui = CustomUIManager.Window(BodyWindowId, T("clinic_body_chart"))
                 .SetSize(330, 618).SetPosition(position).SetDraggable(true);
             var samplingTarget = BuildPatientBody(ui, visit);
             ui.AddCloseButton(CloseBody);
@@ -333,6 +334,15 @@ namespace DoctorClinic
         {
             RefreshOpenSettlement(visit);
             if (TreatmentOpen) ShowBody(visit);
+        }
+
+        // Only charts with nothing to click get a standing hint: a patient whose conditions
+        // are all systemic shows no wound on the body, and that reads as an empty patient.
+        private static string ChartHint(ClinicCase visit)
+        {
+            if (visit.HasVisibleInjury || !visit.HasSystemicCondition) return null;
+            if (!visit.HasValidSample) return T("clinic_no_visible_injury_draw_blood");
+            return visit.HasBloodReport ? T("clinic_blood_test_clear_diagnose") : T("clinic_blood_sample_ready_analyse");
         }
 
         private WoundDrop BuildPatientBody(CustomUIBuilder ui, ClinicCase visit)
@@ -349,6 +359,10 @@ namespace DoctorClinic
             }
 
             ui.BeginPanel(312, 538, TextAnchor.MiddleCenter, 0, 0, "clinic_treatment");
+            // The latest action's outcome sits at the top-left of the chart so it is read
+            // before the body itself; the window title stays the chart's own name.
+            var line = ChartHint(visit) ?? status;
+            if (!string.IsNullOrEmpty(line)) ui.AddLabel(line, ClinicStatusLabel);
             ui.AddImage(displayBody, providedBody == null ? 296 : 240, providedBody == null ? 370 : 480, "body_chart");
             var chart = ui.Last.Rect;
             var bodyHit = chart.gameObject.AddComponent<BodyRegionTarget>();
@@ -414,7 +428,7 @@ namespace DoctorClinic
             var treatment = Identify(item);
             if (body && CanUse(item) && RejectInappropriateAnesthesia(visit, treatment))
             {
-                if (!ReactToTreatmentMistake(visit, stopped: true)) RefreshVisitPanels(visit);
+                if (!ReactToTreatmentMistake(visit, stopped: true, ItemDisplayName(item))) RefreshVisitPanels(visit);
                 return;
             }
             if (body && treatment == Treatment.Synaprest)
@@ -449,7 +463,7 @@ namespace DoctorClinic
                 if (index < 0)
                 {
                     status = T("clinic_this_medicine_does_not_match_any_of");
-                    if (CanUse(item) && ReactToTreatmentMistake(visit, stopped: false)) return;
+                    if (CanUse(item) && ReactToTreatmentMistake(visit, stopped: false, ItemDisplayName(item))) return;
                     RefreshVisitPanels(visit);
                     return;
                 }
@@ -466,7 +480,7 @@ namespace DoctorClinic
                 return;
             }
             status = T("clinic_there_is_no_treatable_wound_in_this");
-            if (treatment.HasValue && CanUse(item) && ReactToTreatmentMistake(visit, IsInvasiveTreatment(treatment.Value))) return;
+            if (treatment.HasValue && CanUse(item) && ReactToTreatmentMistake(visit, IsInvasiveTreatment(treatment.Value), ItemDisplayName(item))) return;
             RefreshVisitPanels(visit);
         }
 
@@ -544,11 +558,19 @@ namespace DoctorClinic
         private void BindPracticeBuyer(ClinicCase visit)
         {
             boundBuyer = bindCounterBuyer ? CounterBuyer() : null;
-            if (boundBuyer != null && BargainUIManager.Instance != null)
-                visit.NativeDiscountPercent = BargainUIManager.Instance.DiscountPercent;
+            if (boundBuyer == null || BargainUIManager.Instance == null) return;
+            var bargain = BargainUIManager.Instance;
+            visit.NativeDiscountPercent = bargain.DiscountPercent;
+            // Only an accepted offer may raise the bill; a refusal leaves markupApplied false.
+            var applied = HarmonyLib.AccessTools.Field(typeof(BargainUIManager), "markupApplied");
+            visit.NativeMarkupPercent = applied?.GetValue(bargain) is true ? bargain.MarkupPercent : 0;
         }
 
         internal static bool IsSamplingSyringe(GameItem item) => item?.identifier == Syringe;
+
+        // Message lines name the consumed item; a missing display name falls back to its id.
+        internal static string ItemDisplayName(GameItem item) =>
+            string.IsNullOrEmpty(item?.name) ? item?.identifier ?? "" : item.name;
 
         internal static bool IsClinicBodyItem(GameItem item) => IsSamplingSyringe(item) || Identify(item).HasValue;
 
@@ -619,7 +641,7 @@ namespace DoctorClinic
                 status = T("clinic_choose_supplies_that_can_still_be_removed");
             else if (RejectInappropriateAnesthesia(visit, treatment))
             {
-                if (!ReactToTreatmentMistake(visit, stopped: true)) RefreshVisitPanels(visit);
+                if (!ReactToTreatmentMistake(visit, stopped: true, ItemDisplayName(item))) RefreshVisitPanels(visit);
                 return;
             }
             else if (treatment == Treatment.DuskReagent || treatment == Treatment.Zyanide) status = T("clinic_drag_onto_the_body_chart");
@@ -629,14 +651,14 @@ namespace DoctorClinic
                 if (wound.Kind == ConditionKind.SentinelCollapse)
                 {
                     QueueClinicReply(visit, T("clinic_are_you_kidding_me_there_s_nothing"), difficulty == Difficulty.困难 && visit.Patience < 2);
-                    if (ReactToTreatmentMistake(visit, stopped: true)) return;
+                    if (ReactToTreatmentMistake(visit, stopped: true, ItemDisplayName(item))) return;
                 }
             }
             else if (treatment == Treatment.Oximor && wound.Kind == ConditionKind.OximorDependence && visit.RequiresAddictionCure(wound))
             {
                 status = T("clinic_the_patient_has_chosen_treatment_for_their");
                 QueueClinicReply(visit, T("clinic_i_want_to_quit_for_good_give"));
-                if (ReactToTreatmentMistake(visit, stopped: true)) return;
+                if (ReactToTreatmentMistake(visit, stopped: true, ItemDisplayName(item))) return;
             }
             else if (IsAnesthesia(treatment.Value) && !(treatment == Treatment.Oximor && wound.Kind == ConditionKind.OximorDependence))
                 status = T("clinic_drag_the_anesthetic_onto_the_body_chart");
@@ -648,7 +670,7 @@ namespace DoctorClinic
             else if (!valid && IsInvasiveTreatment(treatment.Value))
             {
                 status = T("clinic_the_patient_stopped_the_procedure");
-                if (ReactToTreatmentMistake(visit, stopped: true)) return;
+                if (ReactToTreatmentMistake(visit, stopped: true, ItemDisplayName(item))) return;
             }
             else
             {
@@ -671,11 +693,10 @@ namespace DoctorClinic
                 }
                 if (valid) status = immunivax.ReducedQuality != null
                     ? T("clinic_the_patient_recognized_the_immunivax_the_dose", immunivax.ReducedQuality, immunivax.Price)
-                    : tool ? T("clinic_used_a_reusable_tool") : T("clinic_used_one_unit_of_supplies");
+                    : tool ? T("clinic_used_a_reusable_tool") : T("clinic_used_one_unit_of_supplies", ItemDisplayName(item));
                 else
                 {
-                    status = T("clinic_used_one_unit_of_supplies_with_no");
-                    if (ReactToTreatmentMistake(visit, stopped: false)) return;
+                    if (ReactToTreatmentMistake(visit, stopped: false, ItemDisplayName(item))) return;
                 }
                 Save();
             }
@@ -701,11 +722,38 @@ namespace DoctorClinic
             RefreshOpenSettlement(visit);
         }
 
+        internal void OnNativeMarkup(StoreClient buyer, int percent)
+        {
+            var visit = state?.Current;
+            if (buyer == null || buyer != boundBuyer || visit == null || !IsCurrent(visit)) return;
+            if (percent <= visit.NativeMarkupPercent) return;
+            visit.NativeMarkupPercent = percent;
+            Save();
+            RefreshOpenSettlement(visit);
+        }
+
+        // The native rejection path either keeps the customer (only a line of dialogue, intent
+        // untouched) or walks them out (intent forced to DIALOGUE, then DismissCurrentClient).
+        // Only the walkout must be caught here: it still owes the original bill, and the
+        // game's own -3 faction rep has already been applied by the time this runs.
+        internal void OnMarkupRefused(StoreClient buyer, int percent)
+        {
+            var visit = state?.Current;
+            if (buyer == null || buyer != boundBuyer || visit == null || !IsCurrent(visit)) return;
+            if (visit.MarkupRefusalHandled) return;
+            if (buyer.clientIntent != StoreClient.ClientIntent.DIALOGUE) return;
+            visit.MarkupRefusalHandled = true;
+            visit.MarkupRefusedPercent = percent;
+            Save();
+        }
+
         internal void OnCounterDismiss(PlayerStore playerStore)
         {
             var visit = state?.Current;
             if (playerStore != store || visit == null || !IsCurrent(visit) || boundBuyer == null ||
                 playerStore.currentClientInstance?.GetClientBlueprint() != boundBuyer) return;
+            // A customer who walked out over a markup still pays the original bill; the
+            // settlement below clears the payable only for a patience walkout.
             Finish(visit, true, dismissBuyer: false, showReceipt: SettlementOpen);
         }
 
@@ -721,6 +769,8 @@ namespace DoctorClinic
             if (!visit.Settled) return;
             if (visit.PatientWalkedOut && !visit.Practice && !visit.Tutorial)
                 state.LastReputationReason = "clinic_reason_patient_walkout";
+            else if (visit.MarkupRefusalHandled && !visit.Practice && !visit.Tutorial)
+                state.LastReputationReason = "clinic_reason_raised_price_refused";
             boundBuyer = null;
             CloseBody();
             if (amount > 0) store.PayMoney(-amount, true);

@@ -169,6 +169,7 @@ namespace DoctorClinic
             TabletUI.LayoutSection(frame, infoHeight, true, 432);
             var payable = bill.Sum(line => line.Payable);
             var discount = bill.Sum(line => line.Discount);
+            var markup = bill.Sum(line => line.Markup);
             var auxiliary = bill.Sum(line => line.AuxiliaryPayable);
             var practice = visit.Practice || visit.Tutorial;
             var cost = bill.Sum(line => line.EstimatedCost);
@@ -180,6 +181,7 @@ namespace DoctorClinic
             hoverArea.color = Color.clear;
             TabletUI.AddTooltip(totalRow,
                 () => T("clinic_bill_discount_tooltip", visit.NativeDiscountPercent, TabletUI.Credits(discount)) +
+                      (markup > 0 ? T("clinic_bill_markup_tooltip", visit.NativeMarkupPercent, TabletUI.Credits(markup)) : "") +
                       T("clinic_bill_anesthesia_tooltip", TabletUI.Credits(visit.Settled && practice ? 0 : auxiliary)) +
                       T("clinic_net_earnings", TabletUI.Credits(payable - cost)));
             if (!visit.Settled)

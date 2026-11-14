@@ -22,6 +22,7 @@ namespace DoctorClinic
                 "通过王尔德取得医生执照" => "clinic_reason_wilde_medical_license",
                 "调试菜单调整" => "clinic_reason_debug_adjustment",
                 "患者失去耐心离开" => "clinic_reason_patient_walkout",
+                "抬价被拒，患者离开" => "clinic_reason_raised_price_refused",
                 _ => reason
             };
             return key.StartsWith("clinic_", System.StringComparison.Ordinal) ? T(key) : reason;

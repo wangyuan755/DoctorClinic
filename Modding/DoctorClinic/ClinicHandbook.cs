@@ -50,38 +50,60 @@ namespace DoctorClinic
             HandbookStages(ui, 314, "abrasion_raw", "abrasion_clean", "dressing");
 
             HandbookPage(ui, "first_visit", "clinic_manual_paper_bill");
-            HandbookText(ui, "clinic_manual_bill", 101, 124);
-            ui.AddLine(48, 247, 267, 247, 1, "#756451");
-            ui.AddText(48, 263, 219, 37, T("clinic_bill_result",
-                T("clinic_bill_wound", BodyChart.RegionName(0), T("clinic_abrasion")), T("clinic_perfect_treatment")),
-                "section", align: "center", fontSize: 12);
-            ui.AddText(48, 301, 219, 22, T("clinic_manual_example_amount", 155), "body", align: "center", fontSize: 11);
-            HandbookText(ui, "clinic_end_settle", 337, 24, "section", "center");
+            HandbookText(ui, "clinic_manual_bill", 101, 106);
+            ui.AddLine(48, 213, 267, 213, 1, "#756451");
+            ui.AddText(48, 219, 219, 14, T("clinic_manual_bill_injury",
+                T("clinic_bill_wound", BodyChart.RegionName(0), T("clinic_abrasion"))), "section", fontSize: 11);
+            ui.AddText(48, 235, 219, 13, T("clinic_manual_bill_injury_formula", 70, 10, 40, 8), "body", fontSize: 10);
+            ui.AddText(48, 250, 219, 13, T("clinic_manual_bill_injury_sum", 128), "body", fontSize: 10);
+            ui.AddText(48, 265, 219, 13, T("clinic_manual_bill_injury_total"), "caption", fontSize: 10);
+            ui.AddLine(48, 283, 267, 283, 1, "#756451");
+            // Illnesses are systemic: the bill names them by condition, not by body region.
+            ui.AddText(48, 289, 219, 14, T("clinic_manual_bill_disease",
+                T("clinic_bill_wound", T("clinic_systemic"), T("clinic_graywater_fever"))), "section", fontSize: 11);
+            ui.AddText(48, 305, 219, 13, T("clinic_manual_bill_disease_formula", 70, 25), "body", fontSize: 10);
+            ui.AddText(48, 320, 219, 13, T("clinic_manual_bill_disease_sum", 95), "body", fontSize: 10);
+            ui.AddText(48, 335, 219, 20, T("clinic_manual_bill_disease_total"), "caption", fontSize: 10);
+            HandbookText(ui, "clinic_end_settle", 358, 22, "section", "center");
+
+            HandbookPage(ui, "first_visit", "clinic_manual_paper_unpack");
+            HandbookText(ui, "clinic_manual_unpack", 100, 58);
+            HandbookItem(ui, MedicalPack.Id, 33, 183, 48);
+            ui.AddLine(92, 207, 122, 207, 1, "#756451", "end");
+            HandbookItem(ui, "bandage_item", 130, 168);
+            HandbookItem(ui, "rubbing_alcohol", 178, 168);
+            HandbookItem(ui, MedicalPack.Splint, 226, 168);
+            HandbookItem(ui, MedicalPack.Suture, 130, 212);
+            HandbookItem(ui, MedicalPack.ColdPack, 178, 212);
+            ui.AddText(150, 188, 16, 11, "×2", "caption", align: "center", fontSize: 9);
 
             HandbookPage(ui, "injuries", "clinic_manual_compare_cuts");
-            HandbookEntry(ui, "abrasion", "abrasion", 100, 67);
-            HandbookEntry(ui, "shallow_cut", "shallow", 176, 67);
-            HandbookStages(ui, 256, false, "abrasion_raw", "laceration_raw", "deep_cut_bleeding");
-            HandbookText(ui, "clinic_manual_bandages", 312, 60);
+            HandbookEntry(ui, "abrasion", "abrasion", 100, 64);
+            HandbookStages(ui, 166, true, 38, "abrasion_raw", "abrasion_clean");
+            HandbookEntry(ui, "shallow_cut", "shallow", 202, 79);
+            HandbookStages(ui, 283, true, 38, "laceration_raw", "laceration_closed");
+            HandbookText(ui, "clinic_manual_bandages", 319, 48);
 
             HandbookPage(ui, "injuries", "clinic_manual_paper_cool");
-            HandbookEntry(ui, "bruise", "bruise", 100, 70);
-            HandbookEntry(ui, "burn", "burn", 180, 70);
-            HandbookText(ui, "clinic_manual_compare_bruise", 256, 24, "caption", "center");
-            HandbookStages(ui, 284, "bruise_raw", "bruise_cooled");
+            HandbookEntry(ui, "bruise", "bruise", 100, 49);
+            HandbookStages(ui, 149, true, 38, "bruise_raw", "bruise_cooled");
+            HandbookText(ui, "clinic_manual_compare_bruise", 189, 16, "caption", "center");
+            HandbookEntry(ui, "burn", "burn", 203, 49);
+            HandbookStages(ui, 252, true, 38, "burn_raw", "burn_cooled");
+            HandbookText(ui, "clinic_manual_compare_burn", 292, 16, "caption", "center");
 
             HandbookPage(ui, "injuries", "clinic_manual_paper_trauma");
-            HandbookEntry(ui, "fracture", "fracture", 100, 67);
-            HandbookEntry(ui, "deep_cut", "deep", 176, 67);
-            HandbookText(ui, "clinic_manual_compare_deep", 256, 24, "caption", "center");
-            HandbookStages(ui, 284, "deep_cut_bleeding", "deep_cut_sutured");
+            HandbookEntry(ui, "fracture", "fracture", 100, 64);
+            HandbookEntry(ui, "deep_cut", "deep", 164, 49);
+            HandbookStages(ui, 213, true, 38, "deep_cut_bleeding", "deep_cut_hemostasis", "deep_cut_sutured");
+            HandbookText(ui, "clinic_manual_compare_deep", 253, 16, "caption", "center");
 
             HandbookPage(ui, "injuries", "clinic_manual_paper_bleeding");
-            HandbookEntry(ui, "gunshot_wound", "gunshot", 100, 67);
-            HandbookEntry(ui, "blood_loss", "bleeding", 176, 78);
-            HandbookText(ui, "clinic_manual_compare_bullet", 262, 22, "caption", "center");
-            HandbookStages(ui, 286, "bullet_raw", "bullet_removed");
-            HandbookText(ui, "clinic_manual_multiple", 344, 22, "caption", "center");
+            HandbookEntry(ui, "gunshot_wound", "gunshot", 100, 79);
+            HandbookStages(ui, 181, true, 38, "bullet_raw", "bullet_removed");
+            HandbookText(ui, "clinic_manual_compare_bullet", 221, 16, "caption", "center");
+            HandbookEntry(ui, "blood_loss", "bleeding", 233, 79);
+            HandbookText(ui, "clinic_manual_multiple", 312, 24, "caption", "center");
 
             HandbookPage(ui, "diagnosis", "clinic_manual_report_example");
             HandbookText(ui, "clinic_manual_sampling", 100, 94);
@@ -123,8 +145,11 @@ namespace DoctorClinic
             HandbookDialogue(ui, "clinic_i_haven_t_had_a_proper_skin", "skincare_cream", 288);
 
             HandbookPage(ui, "care", "clinic_manual_anesthesia_title");
-            HandbookText(ui, "clinic_manual_anesthesia", 111, 155);
-            HandbookBody(ui, "anesthesia_body", 131, 240, false);
+            HandbookText(ui, "clinic_manual_anesthesia", 100, 75);
+            ui.AddLocalizedText(35, 185, 247, 14, "clinic_manual_anesthesia_nomore_title", "section", fontSize: 11);
+            HandbookText(ui, "clinic_manual_anesthesia_nomore", 199, 75);
+            ui.AddLocalizedText(35, 284, 247, 14, "clinic_manual_anesthesia_others_title", "section", fontSize: 11);
+            HandbookText(ui, "clinic_manual_anesthesia_others", 298, 75);
 
             ui.PageShown += ApplyHandbookArt;
             handbookPaper = ui;
@@ -154,11 +179,15 @@ namespace DoctorClinic
                 "body", fontSize: 10.5f);
         }
 
-        private static void HandbookItem(PaperUI ui, string id, float x, float y)
+        private static void HandbookItem(PaperUI ui, string id, float x, float y, float size = 34)
         {
             var item = DirectoryMaster.Create<GameItem>(id);
-            if (item != null)
-                ui.AddImage(x, y, 34, 34, item.spriteAtlasPath + "/" + item.spritePath, "fit");
+            if (item == null) return;
+            // Mod items load from the mod's own sprite sheet; vanilla items from an item atlas.
+            var key = item.useSpriteFromMod
+                ? item.spriteAtlasPath + ":" + item.spritePath
+                : item.spriteAtlasPath + "/" + item.spritePath;
+            ui.AddImage(x, y, size, size, key, "fit");
         }
 
         private static void HandbookDialogue(PaperUI ui, string line, string item, float y)
@@ -193,16 +222,23 @@ namespace DoctorClinic
         }
 
         private void HandbookStages(PaperUI ui, float y, params string[] stages) =>
-            HandbookStages(ui, y, true, stages);
+            HandbookStages(ui, y, true, 45, stages);
 
-        private void HandbookStages(PaperUI ui, float y, bool showArrows, params string[] stages)
+        private void HandbookStages(PaperUI ui, float y, bool showArrows, params string[] stages) =>
+            HandbookStages(ui, y, showArrows, 45, stages);
+
+        private void HandbookStages(PaperUI ui, float y, bool showArrows, float size, params string[] stages)
         {
-            var x = stages.Length == 3 ? 66f : 97f;
-            for (var i = 0; i < stages.Length; i++, x += 68)
+            // Centre the strip inside the 35..282 content column.
+            const float left = 35f, right = 282f;
+            const float gap = 23f;
+            var width = stages.Length * size + Mathf.Max(0, stages.Length - 1) * gap;
+            var x = left + Mathf.Max(0f, (right - left - width) / 2f);
+            for (var i = 0; i < stages.Length; i++, x += size + gap)
             {
-                HandbookWound(ui, stages[i], x, y, 45);
+                HandbookWound(ui, stages[i], x, y, size);
                 if (showArrows && i + 1 < stages.Length)
-                    HandbookArrow(ui, x + 49, y + 22);
+                    HandbookArrow(ui, x + size + 4, y + size / 2);
             }
         }
 

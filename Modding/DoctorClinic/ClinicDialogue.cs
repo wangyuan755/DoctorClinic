@@ -22,8 +22,14 @@ namespace DoctorClinic
                 afterWalkout || (state?.Current == visit && (patient == null || IsAtCounter(patient, visit.Settled)))));
         }
 
-        private bool ReactToTreatmentMistake(ClinicCase visit, bool stopped)
+        private bool ReactToTreatmentMistake(ClinicCase visit, bool stopped, string itemName = null)
         {
+            // The outcome line is shown on every difficulty; only the patience/reputation
+            // consequences are gated to 困难.
+            if (!string.IsNullOrEmpty(itemName))
+                status = stopped
+                    ? T("clinic_treatment_mistake", itemName)
+                    : T("clinic_used_one_unit_of_supplies_with_no", itemName);
             if (difficulty != Difficulty.困难) return false;
             visit.LosePatience(stopped);
             QueueClinicReply(visit, stopped ? TreatmentAccidentReply : IneffectiveTreatmentReply, visit.PatientWalkedOut);
